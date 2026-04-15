@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Theme: Dark (default) ──────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  --color-bg:          7 9 15;
+  --color-bg-surface:  12 16 24;
+  --color-bg-surface2: 17 24 39;
+  --color-bg-surface3: 24 36 58;
+
+  --color-border:      30 45 69;
+  --color-border-hover: 45 66 112;
+
+  --color-accent:       79 142 247;
+  --color-accent-hover: 106 160 249;
+
+  --color-daily:  52 211 153;
+  --color-warm:   245 158 11;
+  --color-danger: 248 113 113;
+
+  --color-text:       226 234 245;
+  --color-text-muted: 98 120 160;
+  --color-text-dim:   61 80 112;
+
+  /* Utility shadows / glows */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --glow-accent: 0 0 20px rgba(79, 142, 247, 0.15), 0 0 40px rgba(79, 142, 247, 0.05);
+  --glow-daily:  0 0 12px rgba(52, 211, 153, 0.2);
+
+  /* Glass card */
+  --glass-bg:     rgba(15, 22, 40, 0.70);
+  --glass-border: rgba(30, 45, 69, 0.80);
+
+  /* Shimmer gradient */
+  --shimmer-from: #0c1018;
+  --shimmer-mid:  #162032;
+}
+
+/* ── Theme: Light ────────────────────────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg:          242 245 252;
+  --color-bg-surface:  255 255 255;
+  --color-bg-surface2: 235 240 250;
+  --color-bg-surface3: 220 229 245;
+
+  --color-border:       196 210 232;
+  --color-border-hover: 156 180 220;
+
+  --color-accent:       55 114 235;
+  --color-accent-hover: 37  95 215;
+
+  --color-daily:  16 185 129;
+  --color-warm:   217 119 6;
+  --color-danger: 220 38 38;
+
+  --color-text:       15 23 42;
+  --color-text-muted: 94 115 153;
+  --color-text-dim:   160 179 210;
+
+  --shadow-card: 0 4px 24px rgba(100, 130, 180, 0.12);
+  --glow-accent: 0 0 16px rgba(55, 114, 235, 0.10);
+  --glow-daily:  0 0 10px rgba(16, 185, 129, 0.12);
+
+  --glass-bg:     rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(196, 210, 232, 0.90);
+
+  --shimmer-from: #e8edf8;
+  --shimmer-mid:  #d4ddf0;
+}
+
+/* ── Base ────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Figtree', sans-serif;
+  background: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* ── Theme transition — smooth swap ─────────────────────────────── */
+*, *::before, *::after {
+  transition:
+    background-color 0.25s ease,
+    border-color     0.2s ease,
+    color            0.2s ease,
+    box-shadow       0.2s ease;
+}
+/* But don't slow down animations that need to be instant */
+.no-theme-transition,
+.no-theme-transition * {
+  transition: none !important;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-border));
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-border-hover));
+}
+
+/* ── Selection ───────────────────────────────────────────────────── */
+::selection {
+  background: rgb(var(--color-accent) / 0.20);
+  color: rgb(var(--color-text));
+}
+
+/* ── Glow utilities ──────────────────────────────────────────────── */
+.glow-blue { box-shadow: var(--glow-accent); }
+.glow-green { box-shadow: var(--glow-daily); }
+
+/* ── Topic item ──────────────────────────────────────────────────── */
+.topic-item {
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.topic-item:hover {
+  background: rgb(var(--color-border) / 0.25);
+}
+.topic-item.active {
+  background: rgb(var(--color-accent) / 0.08);
+  border-color: rgb(var(--color-accent) / 0.30);
+}
+
+/* ── Collapsible ─────────────────────────────────────────────────── */
+.collapsible-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+}
+.collapsible-content.open  { max-height: 9999px; opacity: 1; }
+.collapsible-content.closed { max-height: 0; opacity: 0; }
+
+/* ── Glass card ──────────────────────────────────────────────────── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Daily badge pulse ───────────────────────────────────────────── */
+.daily-badge { animation: pulseSoft 2.5s ease-in-out infinite; }
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+/* ── Shimmer skeleton ────────────────────────────────────────────── */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--shimmer-from) 25%,
+    var(--shimmer-mid)  50%,
+    var(--shimmer-from) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
