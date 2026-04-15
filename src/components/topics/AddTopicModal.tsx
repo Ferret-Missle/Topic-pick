@@ -15,7 +15,7 @@ export default function AddTopicModal({ onClose }: Props) {
 	const [view, setView] = useState<View>("form");
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-	const [isDaily, setIsDaily] = useState(false);
+	const [isDaily] = useState(false);
 	const [frequency, setFrequency] = useState<"daily" | "weekly" | "custom">(
 		isDaily ? "daily" : "weekly",
 	);

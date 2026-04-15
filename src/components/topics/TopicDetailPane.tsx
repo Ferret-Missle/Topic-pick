@@ -3,7 +3,6 @@ import { ja } from "date-fns/locale";
 import { Clock, Eye, RefreshCw, Search, Zap } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useAuth } from "../../contexts/AuthContext";
 import { useTopics } from "../../contexts/TopicsContext";
 import CollapsibleSection from "../common/CollapsibleSection";
 import RawItemsList from "./RawItemsList";
@@ -20,7 +19,7 @@ export default function TopicDetailPane() {
 		getMonthlyViews,
 		needsUpdate,
 	} = useTopics();
-	const { appUser } = useAuth();
+	// appUser not needed in this component
 	const [refreshing, setRefreshing] = useState(false);
 
 	const topic = topics.find((t) => t.id === selectedTopicId);

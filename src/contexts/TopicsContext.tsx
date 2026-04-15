@@ -48,7 +48,7 @@ interface TopicsContextValue {
 	modifyTopic: (id: string, data: Partial<Topic>) => Promise<void>;
 	refreshTopic: (id: string) => Promise<void>;
 	canAddTopic: boolean;
-	canSetDaily: (topicId?: string) => boolean;
+	canSetDaily: () => boolean;
 	maxTopics: number;
 	getWeeklyViews: (topic: Topic) => number;
 	getMonthlyViews: (topic: Topic) => number;
@@ -181,7 +181,7 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 
 	const canAddTopic = topics.length < maxTopics;
 
-	function canSetDaily(topicId?: string): boolean {
+	function canSetDaily(): boolean {
 		// Remove paid tier restriction: allow setting daily for any user.
 		return true;
 	}

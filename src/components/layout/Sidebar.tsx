@@ -10,7 +10,7 @@ import {
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
-import { useTheme } from "../../contexts/ThemeContext";
+// removed unused useTheme import
 import { useTopics } from "../../contexts/TopicsContext";
 import AuthModal from "../auth/AuthModal";
 import ChatPanel from "../chat/ChatPanel";
@@ -30,7 +30,7 @@ export default function Sidebar() {
 		canAddTopic,
 		maxTopics,
 	} = useTopics();
-	const { theme, toggleTheme } = useTheme();
+	// theme toggle removed from sidebar header
 
 	const [showAdd, setShowAdd] = useState(false);
 	const [showAuth, setShowAuth] = useState(false);
