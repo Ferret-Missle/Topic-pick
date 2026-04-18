@@ -20,6 +20,7 @@ export default function AddTopicModal({ onClose }: Props) {
 		isDaily ? "daily" : "weekly",
 	);
 	const [customDays, setCustomDays] = useState<number | undefined>(undefined);
+	const [dailyTime, setDailyTime] = useState<string>("08:00");
 	const [loading, setLoading] = useState(false);
 
 	async function handleAdd() {
@@ -34,7 +35,13 @@ export default function AddTopicModal({ onClose }: Props) {
 		setLoading(true);
 		try {
 			const freq = frequency || (isDaily ? "daily" : "weekly");
-			await addTopic(name.trim(), description.trim(), freq, customDays);
+			await addTopic(
+				name.trim(),
+				description.trim(),
+				freq,
+				customDays,
+				dailyTime,
+			);
 			toast.success("トピックを追加しました");
 			onClose();
 		} catch (err) {
@@ -52,7 +59,7 @@ export default function AddTopicModal({ onClose }: Props) {
 		setLoading(true);
 		try {
 			const freq = frequency || (isDaily ? "daily" : "weekly");
-			await addTopic(topicName, desc, freq, customDays);
+			await addTopic(topicName, desc, freq, customDays, dailyTime);
 			toast.success("トピックを追加しました");
 			onClose();
 		} catch (err) {
@@ -148,6 +155,14 @@ export default function AddTopicModal({ onClose }: Props) {
 										<option value="weekly">毎週</option>
 										<option value="custom">カスタム（日）</option>
 									</select>
+									{frequency === "daily" && (
+										<input
+											type="time"
+											value={dailyTime}
+											onChange={(e) => setDailyTime(e.target.value)}
+											className="ml-2 px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
+										/>
+									)}
 									{frequency === "custom" && (
 										<input
 											type="number"

@@ -1,5 +1,6 @@
 import {
 	AlertTriangle,
+	Filter,
 	LogIn,
 	LogOut,
 	MessageCircle,
@@ -17,6 +18,7 @@ import ChatPanel from "../chat/ChatPanel";
 import AddTopicModal from "../topics/AddTopicModal";
 import TopicItem from "../topics/TopicItem";
 import SettingsPanel from "./SettingsPanel";
+import TokenUsagePanel from "./TokenUsagePanel";
 
 export default function Sidebar() {
 	const { appUser, logout, firebaseUser } = useAuth();
@@ -35,6 +37,7 @@ export default function Sidebar() {
 	const [showAdd, setShowAdd] = useState(false);
 	const [showAuth, setShowAuth] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
+	const [showTokenUsage, setShowTokenUsage] = useState(false);
 	const [showChangePoll, setShowChangePoll] = useState(false);
 	const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -182,6 +185,20 @@ export default function Sidebar() {
 				</div>
 				{/* Bottom: settings / user */}
 				<div className="border-t border-border p-3 space-y-1.5">
+					{/* Token usage button */}
+					<button
+						onClick={() => {
+							setShowSettings(false);
+							setShowTokenUsage(true);
+						}}
+						className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-text-muted hover:text-text hover:bg-bg-surface3 transition-all"
+					>
+						<Filter size={13} />
+						使用料金を確認
+					</button>
+
+					{/** Token usage modal state handled below **/}
+
 					{showSettings && (
 						<div className="mb-2 animate-fade-in">
 							<SettingsPanel />
@@ -224,6 +241,21 @@ export default function Sidebar() {
 			{/* Modals */}
 			{showAdd && <AddTopicModal onClose={() => setShowAdd(false)} />}
 			{showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+
+			{showTokenUsage && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+					<div
+						className="glass-card rounded-2xl w-full max-w-lg overflow-hidden"
+						style={{
+							height: "560px",
+							display: "flex",
+							flexDirection: "column",
+						}}
+					>
+						<TokenUsagePanel onClose={() => setShowTokenUsage(false)} />
+					</div>
+				</div>
+			)}
 
 			{showChangePoll && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">

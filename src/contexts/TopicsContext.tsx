@@ -8,10 +8,15 @@ import {
 	type ReactNode,
 } from "react";
 import toast from "react-hot-toast";
-import { fetchTopicNews, hasApiKey } from "../services/aiService";
+import {
+	fetchTopicNews,
+	getSavedApiKey,
+	hasApiKey,
+} from "../services/aiService";
 import {
 	createTopic,
 	deleteTopic,
+	recordUsage,
 	recordView,
 	subscribeToTopics,
 	updateTopic,
@@ -43,6 +48,7 @@ interface TopicsContextValue {
 		description: string,
 		frequency?: "daily" | "weekly" | "custom",
 		customDays?: number,
+		dailyTime?: string,
 	) => Promise<void>;
 	removeTopic: (id: string) => Promise<void>;
 	modifyTopic: (id: string, data: Partial<Topic>) => Promise<void>;
@@ -170,6 +176,25 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 				trendData: result.trendData,
 				lastFetched: new Date().toISOString(),
 			});
+
+			// Record estimated usage (approximation) to Firestore
+			try {
+				const json = JSON.stringify(result);
+				const tokensEstimate = Math.max(1, Math.ceil(json.length / 4));
+				const pricePer1k = Number(
+					localStorage.getItem("topicpulse_price_per_1k") || 0.03,
+				);
+				const usd = (tokensEstimate * pricePer1k) / 1000;
+				const key = getSavedApiKey();
+				await recordUsage(firebaseUser.uid, {
+					date: new Date().toISOString(),
+					tokens: tokensEstimate,
+					usd,
+					key,
+				});
+			} catch (e) {
+				// ignore usage recording errors
+			}
 		} catch (err) {
 			console.error("Fetch failed:", err);
 			throw err;
@@ -220,6 +245,7 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 		description: string,
 		frequency: "daily" | "weekly" | "custom" = "weekly",
 		customDays?: number,
+		dailyTime?: string,
 	) {
 		if (!firebaseUser) throw new Error("ログインが必要です");
 		if (!canAddTopic)
@@ -228,13 +254,16 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 		if (isDailyFlag && !canSetDaily())
 			throw new Error("デイリー更新トピックの上限に達しています");
 
-		const id = await createTopic(firebaseUser.uid, {
+		const payload: Record<string, unknown> = {
 			name,
 			description,
 			isDaily: isDailyFlag,
 			updateFrequency: frequency,
-			customIntervalDays: customDays,
-		});
+		};
+		if (customDays !== undefined) payload.customIntervalDays = customDays;
+		if (dailyTime && isDailyFlag) payload.dailyTime = dailyTime;
+
+		const id = await createTopic(firebaseUser.uid, payload as any);
 		setSelectedTopicId(id);
 	}
 

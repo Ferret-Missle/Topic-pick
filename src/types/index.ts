@@ -44,6 +44,8 @@ export interface Topic {
 	updateFrequency?: "daily" | "weekly" | "custom";
 	// when updateFrequency === 'custom', number of days between updates
 	customIntervalDays?: number;
+	// when updateFrequency === 'daily', time of day to run update in HH:MM
+	dailyTime?: string;
 	// content
 	summary?: string;
 	searchQueries?: string[];

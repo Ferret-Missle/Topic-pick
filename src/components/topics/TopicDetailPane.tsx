@@ -1,9 +1,10 @@
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Clock, Eye, RefreshCw, Search, Zap } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useTopics } from "../../contexts/TopicsContext";
+import ChatPanel from "../chat/ChatPanel";
 import CollapsibleSection from "../common/CollapsibleSection";
 import RawItemsList from "./RawItemsList";
 import SummaryCard from "./SummaryCard";
@@ -15,21 +16,41 @@ export default function TopicDetailPane() {
 		selectedTopicId,
 		fetching,
 		refreshTopic,
+		modifyTopic,
 		getWeeklyViews,
 		getMonthlyViews,
 		needsUpdate,
 	} = useTopics();
+
+	const [showChangeModal, setShowChangeModal] = useState(false);
+	const [showEditSchedule, setShowEditSchedule] = useState(false);
+	const [editFrequency, setEditFrequency] = useState<
+		"daily" | "weekly" | "custom"
+	>("weekly");
+	const [editCustomDays, setEditCustomDays] = useState<number | undefined>(
+		undefined,
+	);
+	const [editDailyTime, setEditDailyTime] = useState<string>("08:00");
 	// appUser not needed in this component
 	const [refreshing, setRefreshing] = useState(false);
 
 	const topic = topics.find((t) => t.id === selectedTopicId);
 
+	// Sync edit form when selected topic changes
+	useEffect(() => {
+		if (!topic) return;
+		setEditFrequency(
+			topic.updateFrequency === "daily" || topic.isDaily
+				? "daily"
+				: topic.updateFrequency || "weekly",
+		);
+		setEditCustomDays(topic.customIntervalDays);
+		setEditDailyTime(topic.dailyTime || "08:00");
+	}, [topic]);
+
 	if (!topic) {
 		return (
 			<div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-				<div className="w-16 h-16 rounded-2xl bg-bg-surface2 border border-border flex items-center justify-center mb-4">
-					<Zap size={28} className="text-text-dim" />
-				</div>
 				<h3 className="font-display font-bold text-lg text-text mb-2">
 					トピックを選択
 				</h3>
@@ -123,9 +144,93 @@ export default function TopicDetailPane() {
 					<RefreshCw size={12} className={isFetching ? "animate-spin" : ""} />
 					即時更新
 				</button>
+
+				{/* Change topic (AI-assisted) */}
+				<button
+					onClick={() => setShowChangeModal(true)}
+					className={`ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-bg-surface3 hover:bg-bg-surface3/80 border border-border text-text disabled:opacity-50`}
+				>
+					<Zap size={12} />
+					トピックを変更
+				</button>
+
+				{/* Edit schedule */}
+				<button
+					onClick={() => setShowEditSchedule((s) => !s)}
+					className={`ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-bg-surface3 hover:bg-bg-surface3/80 border border-border text-text`}
+				>
+					<Clock size={12} />
+					更新設定を編集
+				</button>
 			</div>
 
 			{/* Scrollable content */}
+			{showEditSchedule && (
+				<div className="px-6 py-3 border-b border-border bg-bg-surface/40">
+					<div className="flex items-center gap-2">
+						<select
+							value={editFrequency}
+							onChange={(e) => setEditFrequency(e.target.value as any)}
+							className="px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
+						>
+							<option value="daily">毎日</option>
+							<option value="weekly">毎週</option>
+							<option value="custom">カスタム（日）</option>
+						</select>
+						{editFrequency === "daily" && (
+							<input
+								type="time"
+								value={editDailyTime}
+								onChange={(e) => setEditDailyTime(e.target.value)}
+								className="ml-2 px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
+							/>
+						)}
+						{editFrequency === "custom" && (
+							<input
+								type="number"
+								min={1}
+								placeholder="間隔（日）"
+								value={editCustomDays ?? ""}
+								onChange={(e) =>
+									setEditCustomDays(
+										e.target.value ? Number(e.target.value) : undefined,
+									)
+								}
+								className="w-28 ml-2 px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
+							/>
+						)}
+						<button
+							onClick={async () => {
+								try {
+									await modifyTopic(topic.id, {
+										updateFrequency: editFrequency,
+										customIntervalDays:
+											editFrequency === "custom" ? editCustomDays : undefined,
+										isDaily: editFrequency === "daily",
+										dailyTime:
+											editFrequency === "daily" ? editDailyTime : undefined,
+									});
+									toast.success("更新設定を保存しました");
+									setShowEditSchedule(false);
+								} catch (err) {
+									toast.error(
+										err instanceof Error ? err.message : "保存に失敗しました",
+									);
+								}
+							}}
+							className="ml-4 px-3 py-2 bg-accent/10 hover:bg-accent/20 border border-accent/25 rounded-lg text-sm text-accent"
+						>
+							保存
+						</button>
+						<button
+							onClick={() => setShowEditSchedule(false)}
+							className="ml-2 px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
+						>
+							キャンセル
+						</button>
+					</div>
+				</div>
+			)}
 			<div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0">
 				{/* 1. Summary card */}
 				<SummaryCard topic={topic} />
@@ -182,6 +287,35 @@ export default function TopicDetailPane() {
 					<RawItemsList items={topic.rawItems ?? []} />
 				</CollapsibleSection>
 			</div>
+
+			{/* AI-assisted Change Topic modal */}
+			{showChangeModal && topic && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+					<div
+						className="glass-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
+						style={{ maxHeight: "90vh" }}
+					>
+						<ChatPanel
+							mode="change"
+							onClose={() => setShowChangeModal(false)}
+							onConfirm={async (newName, newDesc) => {
+								try {
+									await modifyTopic(topic.id, {
+										name: newName,
+										description: newDesc,
+									});
+									setShowChangeModal(false);
+									toast.success("トピックを変更しました");
+								} catch (err) {
+									toast.error(
+										err instanceof Error ? err.message : "変更に失敗しました",
+									);
+								}
+							}}
+						/>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

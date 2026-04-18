@@ -88,14 +88,16 @@ export async function createTopic(
 ): Promise<string> {
 	const ref = doc(collection(db, COLLECTION_USERS, userId, COLLECTION_TOPICS));
 	const now = new Date().toISOString();
-	const topic: Omit<Topic, "id"> = {
-		...data,
+	const payload: Record<string, unknown> = {
 		userId,
 		createdAt: now,
 		updatedAt: now,
 		viewHistory: [],
 	};
-	await setDoc(ref, topic);
+	Object.entries(data).forEach(([k, v]) => {
+		if (v !== undefined) payload[k] = v;
+	});
+	await setDoc(ref, payload);
 	return ref.id;
 }
 
@@ -105,11 +107,13 @@ export async function updateTopic(
 	data: Partial<Topic>,
 ) {
 	const ref = doc(db, COLLECTION_USERS, userId, COLLECTION_TOPICS, topicId);
-	await setDoc(
-		ref,
-		{ ...data, updatedAt: new Date().toISOString() },
-		{ merge: true },
-	);
+	const payload: Record<string, unknown> = {
+		updatedAt: new Date().toISOString(),
+	};
+	Object.entries(data).forEach(([k, v]) => {
+		if (v !== undefined) payload[k] = v;
+	});
+	await setDoc(ref, payload, { merge: true });
 }
 
 export async function deleteTopic(userId: string, topicId: string) {
@@ -155,4 +159,20 @@ export async function getAllTopics(userId: string): Promise<Topic[]> {
 	);
 	const snap = await getDocs(q);
 	return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Topic);
+}
+
+// ── Usage recording ─────────────────────────────────────────────────
+export async function recordUsage(
+	userId: string,
+	record: { date: string; tokens: number; usd?: number; key?: string },
+) {
+	const ref = doc(collection(db, COLLECTION_USERS, userId, "usage"));
+	const payload: Record<string, unknown> = {
+		date: record.date,
+		tokens: record.tokens,
+	};
+	if (record.usd !== undefined) payload.usd = record.usd;
+	if (record.key !== undefined) payload.key = record.key;
+	payload["createdAt"] = serverTimestamp();
+	await setDoc(ref, payload);
 }
