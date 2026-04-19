@@ -27,20 +27,6 @@ export default function ApiKeyPanel() {
 		toast.success("APIキーを保存しました");
 	}
 
-	function handleSaveModel() {
-		const trimmed = model.trim();
-		if (!trimmed) {
-			toast.error("モデル名を入力してください");
-			return;
-		}
-		try {
-			localStorage.setItem("topicpulse_anthropic_model", trimmed);
-			toast.success("モデル名を保存しました");
-		} catch {
-			toast.error("モデル名の保存に失敗しました");
-		}
-	}
-
 	const saved = getSavedApiKey();
 	const isValid = saved.startsWith("sk-ant-");
 
@@ -72,20 +58,30 @@ export default function ApiKeyPanel() {
 			<div className="mb-3">
 				<label className="text-xs text-text-muted block mb-1">モデル名</label>
 				<div className="relative">
-					<input
-						type="text"
-						placeholder="claude-sonnet-4-20250514"
+					<select
 						value={model}
-						onChange={(e) => setModel(e.target.value)}
-						className="w-full pr-10 pl-3 py-2.5 bg-bg-surface3 border border-border rounded-lg text-xs text-text font-mono placeholder:text-text-dim focus:outline-none focus:border-accent/50 transition-colors"
-					/>
+						onChange={(e) => {
+							setModel(e.target.value);
+							try {
+								localStorage.setItem(
+									"topicpulse_anthropic_model",
+									e.target.value,
+								);
+								toast.success("モデルを変更しました");
+							} catch {
+								toast.error("モデルの保存に失敗しました");
+							}
+						}}
+						className="w-full pl-3 pr-8 py-2.5 bg-bg-surface3 border border-border rounded-lg text-xs text-text font-mono focus:outline-none focus:border-accent/50 transition-colors appearance-none"
+					>
+						<option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+						<option value="claude-opus-4-20250514">Claude Opus 4</option>
+						<option value="claude-3-7-sonnet-20250219">
+							Claude 3.7 Sonnet
+						</option>
+						<option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+					</select>
 				</div>
-				<button
-					onClick={handleSaveModel}
-					className="w-full mt-2 py-2 bg-accent/10 hover:bg-accent/20 border border-accent/30 hover:border-accent/50 text-accent text-xs font-semibold rounded-lg transition-all"
-				>
-					モデルを保存
-				</button>
 			</div>
 
 			<div className="relative mb-2">

@@ -21,9 +21,9 @@ export default function TopicItem({
 	const isFetching = fetching[topic.id];
 	const weeklyViews = getWeeklyViews(topic);
 
-	const lastViewed = topic.lastViewed
-		? format(new Date(topic.lastViewed), "M/d HH:mm", { locale: ja })
-		: "未閲覧";
+	const lastFetched = topic.lastFetched
+		? format(new Date(topic.lastFetched), "M/d HH:mm", { locale: ja })
+		: "未更新";
 
 	const buzzLevel = topic.trendData?.buzzLevel ?? 0;
 
@@ -95,7 +95,7 @@ export default function TopicItem({
 				</span>
 				<span className="flex items-center gap-1 ml-auto">
 					<Clock size={10} />
-					{lastViewed}
+					{lastFetched}
 				</span>
 			</div>
 

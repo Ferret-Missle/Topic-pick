@@ -21,7 +21,7 @@ import {
 	subscribeToTopics,
 	updateTopic,
 } from "../services/firestoreService";
-import type { AINewsResponse, Topic } from "../types";
+import type { AINewsResponse, ResearchDepth, Topic, TopicType } from "../types";
 import {
 	ANALYTICS_MONTHLY_DAYS,
 	ANALYTICS_WEEKLY_DAYS,
@@ -49,6 +49,8 @@ interface TopicsContextValue {
 		frequency?: "daily" | "weekly" | "custom",
 		customDays?: number,
 		dailyTime?: string,
+		topicType?: TopicType,
+		researchDepth?: ResearchDepth,
 	) => Promise<void>;
 	removeTopic: (id: string) => Promise<void>;
 	modifyTopic: (id: string, data: Partial<Topic>) => Promise<void>;
@@ -168,12 +170,15 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 			const result: AINewsResponse = await fetchTopicNews(
 				topic.name,
 				topic.description,
+				topic.topicType || "news",
+				topic.researchDepth || 3,
 			);
 			await updateTopic(firebaseUser.uid, topic.id, {
 				summary: result.summary,
 				searchQueries: result.searchQueries,
 				rawItems: result.rawItems,
 				trendData: result.trendData,
+				typeContent: result.typeContent,
 				lastFetched: new Date().toISOString(),
 			});
 
@@ -246,6 +251,8 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 		frequency: "daily" | "weekly" | "custom" = "weekly",
 		customDays?: number,
 		dailyTime?: string,
+		topicType: TopicType = "news",
+		researchDepth: ResearchDepth = 3,
 	) {
 		if (!firebaseUser) throw new Error("ログインが必要です");
 		if (!canAddTopic)
@@ -259,6 +266,8 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 			description,
 			isDaily: isDailyFlag,
 			updateFrequency: frequency,
+			topicType,
+			researchDepth,
 		};
 		if (customDays !== undefined) payload.customIntervalDays = customDays;
 		if (dailyTime && isDailyFlag) payload.dailyTime = dailyTime;

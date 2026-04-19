@@ -2,7 +2,13 @@ import { MessageCircle, Plus, X } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useTopics } from "../../contexts/TopicsContext";
+import type { ResearchDepth, TopicType } from "../../types";
+import {
+	RESEARCH_DEPTH_CONFIG,
+	TOPIC_TYPE_CONFIG,
+} from "../../utils/constants";
 import ChatPanel from "../chat/ChatPanel";
+import Tooltip from "../common/Tooltip";
 
 interface Props {
 	onClose: () => void;
@@ -21,6 +27,8 @@ export default function AddTopicModal({ onClose }: Props) {
 	);
 	const [customDays, setCustomDays] = useState<number | undefined>(undefined);
 	const [dailyTime, setDailyTime] = useState<string>("08:00");
+	const [topicType, setTopicType] = useState<TopicType>("news");
+	const [researchDepth, setResearchDepth] = useState<ResearchDepth>(3);
 	const [loading, setLoading] = useState(false);
 
 	async function handleAdd() {
@@ -41,6 +49,8 @@ export default function AddTopicModal({ onClose }: Props) {
 				freq,
 				customDays,
 				dailyTime,
+				topicType,
+				researchDepth,
 			);
 			toast.success("トピックを追加しました");
 			onClose();
@@ -59,7 +69,15 @@ export default function AddTopicModal({ onClose }: Props) {
 		setLoading(true);
 		try {
 			const freq = frequency || (isDaily ? "daily" : "weekly");
-			await addTopic(topicName, desc, freq, customDays, dailyTime);
+			await addTopic(
+				topicName,
+				desc,
+				freq,
+				customDays,
+				dailyTime,
+				topicType,
+				researchDepth,
+			);
 			toast.success("トピックを追加しました");
 			onClose();
 		} catch (err) {
@@ -70,12 +88,34 @@ export default function AddTopicModal({ onClose }: Props) {
 	}
 
 	const dailyAllowed = canSetDaily();
+	const topicTypes = Object.entries(TOPIC_TYPE_CONFIG) as [
+		TopicType,
+		(typeof TOPIC_TYPE_CONFIG)[TopicType],
+	][];
+	const depthLevels = Object.entries(RESEARCH_DEPTH_CONFIG) as [
+		string,
+		(typeof RESEARCH_DEPTH_CONFIG)[ResearchDepth],
+	][];
+
+	// Weekly cost estimation
+	const fetchesPerWeek =
+		frequency === "daily"
+			? 7
+			: frequency === "custom" && customDays
+				? 7 / customDays
+				: 1;
+	const costPerFetch = RESEARCH_DEPTH_CONFIG[researchDepth].costPerFetchUsd;
+	const weeklyCostUsd = costPerFetch * fetchesPerWeek;
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+		<div
+			className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+			onClick={onClose}
+		>
 			<div
-				className="glass-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
+				className="glass-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
 				style={{ maxHeight: "90vh" }}
+				onClick={(e) => e.stopPropagation()}
 			>
 				{view === "chat" ? (
 					<div
@@ -92,7 +132,7 @@ export default function AddTopicModal({ onClose }: Props) {
 						/>
 					</div>
 				) : (
-					<div className="p-7">
+					<div className="p-4 sm:p-7 overflow-y-auto">
 						{/* Header */}
 						<div className="flex items-center justify-between mb-6">
 							<div>
@@ -141,6 +181,97 @@ export default function AddTopicModal({ onClose }: Props) {
 								/>
 							</div>
 
+							{/* Topic Type Selection */}
+							<div>
+								<label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
+									トピックタイプ
+								</label>
+								<div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+									{topicTypes.map(([key, cfg]) => (
+										<Tooltip
+											key={key}
+											position="bottom"
+											content={cfg.description}
+										>
+											<button
+												type="button"
+												onClick={() => setTopicType(key)}
+												className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-xs transition-all ${
+													topicType === key
+														? "border-accent bg-accent/10 text-accent"
+														: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover hover:text-text"
+												}`}
+											>
+												<span className="text-base">{cfg.icon}</span>
+												<span className="font-medium leading-tight text-center text-[10px]">
+													{cfg.label}
+												</span>
+											</button>
+										</Tooltip>
+									))}
+								</div>
+								<p className="text-[11px] text-text-muted mt-1">
+									{TOPIC_TYPE_CONFIG[topicType].description}
+								</p>
+							</div>
+
+							{/* Research Depth */}
+							<div>
+								<label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
+									調査の深さ
+								</label>
+								<div className="flex flex-wrap items-center gap-1">
+									{depthLevels.map(([key, cfg]) => {
+										const level = Number(key) as ResearchDepth;
+										return (
+											<Tooltip
+												key={key}
+												position="bottom"
+												content={
+													<div className="space-y-0.5">
+														<div className="font-semibold">
+															{cfg.label} — {cfg.description}
+														</div>
+														<div className="font-mono text-[10px] opacity-80">
+															{cfg.details}
+														</div>
+														<div className="text-[10px] opacity-70">
+															≈ ${cfg.costPerFetchUsd.toFixed(2)}/回
+														</div>
+													</div>
+												}
+											>
+												<button
+													type="button"
+													onClick={() => setResearchDepth(level)}
+													className={`py-2 px-3 sm:flex-1 rounded-lg border text-xs font-medium transition-all ${
+														researchDepth === level
+															? "border-accent bg-accent/10 text-accent"
+															: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover hover:text-text"
+													}`}
+												>
+													{cfg.label}
+												</button>
+											</Tooltip>
+										);
+									})}
+								</div>
+								<div className="mt-1.5 space-y-1">
+									<p className="text-[11px] text-text-muted">
+										{RESEARCH_DEPTH_CONFIG[researchDepth].description}
+									</p>
+									<p className="text-[10px] text-text-dim font-mono">
+										{RESEARCH_DEPTH_CONFIG[researchDepth].details}
+									</p>
+									<p className="text-[10px] text-text-dim">
+										1回あたり ≈ $
+										{RESEARCH_DEPTH_CONFIG[
+											researchDepth
+										].costPerFetchUsd.toFixed(2)}
+									</p>
+								</div>
+							</div>
+
 							<div className="space-y-2">
 								<label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
 									更新頻度
@@ -186,6 +317,26 @@ export default function AddTopicModal({ onClose }: Props) {
 										: "選択した頻度で自動更新されます"}
 								</p>
 							</div>
+						</div>
+
+						{/* Weekly cost estimate */}
+						<div className="mb-3 px-3 py-2 bg-bg-surface2 border border-border rounded-lg flex flex-wrap items-center justify-between gap-1">
+							<span className="text-[11px] text-text-muted">
+								推定週間コスト（
+								{frequency === "daily"
+									? "7回/週"
+									: frequency === "custom" && customDays
+										? `${(7 / customDays).toFixed(1)}回/週`
+										: "1回/週"}
+								）
+							</span>
+							<span className="text-sm font-bold text-accent font-mono">
+								$
+								{weeklyCostUsd < 0.01
+									? "<$0.01"
+									: `$${weeklyCostUsd.toFixed(2)}`}
+								/週
+							</span>
 						</div>
 
 						{/* Actions */}

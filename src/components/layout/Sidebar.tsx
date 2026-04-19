@@ -199,12 +199,6 @@ export default function Sidebar() {
 
 					{/** Token usage modal state handled below **/}
 
-					{showSettings && (
-						<div className="mb-2 animate-fade-in">
-							<SettingsPanel />
-						</div>
-					)}
-
 					<button
 						onClick={() => setShowSettings((s) => !s)}
 						className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-text-muted hover:text-text hover:bg-bg-surface3 transition-all"
@@ -242,8 +236,35 @@ export default function Sidebar() {
 			{showAdd && <AddTopicModal onClose={() => setShowAdd(false)} />}
 			{showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
+			{showSettings && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+					onClick={() => setShowSettings(false)}
+				>
+					<div
+						className="glass-card rounded-2xl w-full max-w-md overflow-hidden"
+						style={{
+							maxHeight: "80vh",
+							display: "flex",
+							flexDirection: "column",
+						}}
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="p-5 overflow-y-auto">
+							<h2 className="font-display font-bold text-lg text-text mb-4">
+								設定
+							</h2>
+							<SettingsPanel />
+						</div>
+					</div>
+				</div>
+			)}
+
 			{showTokenUsage && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+					onClick={() => setShowTokenUsage(false)}
+				>
 					<div
 						className="glass-card rounded-2xl w-full max-w-lg overflow-hidden"
 						style={{
@@ -251,6 +272,7 @@ export default function Sidebar() {
 							display: "flex",
 							flexDirection: "column",
 						}}
+						onClick={(e) => e.stopPropagation()}
 					>
 						<TokenUsagePanel onClose={() => setShowTokenUsage(false)} />
 					</div>
@@ -258,7 +280,10 @@ export default function Sidebar() {
 			)}
 
 			{showChangePoll && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+					onClick={() => setShowChangePoll(false)}
+				>
 					<div
 						className="glass-card rounded-2xl w-full max-w-lg overflow-hidden"
 						style={{
@@ -266,6 +291,7 @@ export default function Sidebar() {
 							display: "flex",
 							flexDirection: "column",
 						}}
+						onClick={(e) => e.stopPropagation()}
 					>
 						<ChatPanel
 							mode="change"

@@ -1,14 +1,28 @@
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Clock, Eye, RefreshCw, Search, Zap } from "lucide-react";
+import {
+	CalendarClock,
+	Clock,
+	Eye,
+	RefreshCw,
+	Search,
+	Zap,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useTopics } from "../../contexts/TopicsContext";
+import type { ResearchDepth, TopicType } from "../../types";
+import {
+	RESEARCH_DEPTH_CONFIG,
+	TOPIC_TYPE_CONFIG,
+} from "../../utils/constants";
 import ChatPanel from "../chat/ChatPanel";
 import CollapsibleSection from "../common/CollapsibleSection";
+import Tooltip from "../common/Tooltip";
 import RawItemsList from "./RawItemsList";
 import SummaryCard from "./SummaryCard";
 import TrendSection from "./TrendSection";
+import TypeContentView from "./TypeContentView";
 
 export default function TopicDetailPane() {
 	const {
@@ -31,6 +45,8 @@ export default function TopicDetailPane() {
 		undefined,
 	);
 	const [editDailyTime, setEditDailyTime] = useState<string>("08:00");
+	const [editTopicType, setEditTopicType] = useState<TopicType>("news");
+	const [editResearchDepth, setEditResearchDepth] = useState<ResearchDepth>(3);
 	// appUser not needed in this component
 	const [refreshing, setRefreshing] = useState(false);
 
@@ -46,6 +62,8 @@ export default function TopicDetailPane() {
 		);
 		setEditCustomDays(topic.customIntervalDays);
 		setEditDailyTime(topic.dailyTime || "08:00");
+		setEditTopicType(topic.topicType || "news");
+		setEditResearchDepth(topic.researchDepth || 3);
 	}, [topic]);
 
 	if (!topic) {
@@ -93,80 +111,117 @@ export default function TopicDetailPane() {
 	return (
 		<div className="flex-1 flex flex-col h-full overflow-hidden">
 			{/* Top bar */}
-			<div className="flex items-center gap-3 px-6 py-3.5 border-b border-border bg-bg-surface/50 flex-shrink-0">
-				{/* Status */}
-				<div className="flex items-center gap-2">
-					{(topic.updateFrequency === "daily" || topic.isDaily) && (
-						<span className="daily-badge flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold font-mono bg-daily/10 text-daily border border-daily/25 rounded-full uppercase tracking-wider">
-							<Zap size={9} />
-							デイリー
-						</span>
-					)}
+			<div className="flex flex-wrap items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-border bg-bg-surface/50 flex-shrink-0">
+				{/* Status badges */}
+				<div className="flex items-center gap-1.5 flex-wrap">
+					<Tooltip
+						position="bottom"
+						content={TOPIC_TYPE_CONFIG[topic.topicType || "news"].description}
+					>
+						<button
+							onClick={() => setShowEditSchedule((s) => !s)}
+							className="flex items-center gap-1 px-2 py-1 text-[10px] sm:text-[11px] bg-accent/8 text-accent border border-accent/20 rounded-full hover:bg-accent/15 transition-colors cursor-pointer"
+						>
+							{TOPIC_TYPE_CONFIG[topic.topicType || "news"].icon}{" "}
+							<span className="hidden sm:inline">
+								{TOPIC_TYPE_CONFIG[topic.topicType || "news"].label}
+							</span>
+						</button>
+					</Tooltip>
+					<Tooltip
+						position="bottom"
+						content={
+							<div className="space-y-0.5">
+								<div className="font-semibold">
+									{RESEARCH_DEPTH_CONFIG[topic.researchDepth || 3].label}
+								</div>
+								<div className="font-mono text-[10px] opacity-80">
+									{RESEARCH_DEPTH_CONFIG[topic.researchDepth || 3].details}
+								</div>
+							</div>
+						}
+					>
+						<button
+							onClick={() => setShowEditSchedule((s) => !s)}
+							className="flex items-center gap-1 px-2 py-1 text-[10px] sm:text-[11px] bg-bg-surface3 text-text-muted border border-border rounded-full hover:bg-bg-surface3/70 transition-colors cursor-pointer"
+						>
+							Lv.{topic.researchDepth || 3}
+						</button>
+					</Tooltip>
+					<Tooltip
+						position="bottom"
+						content="自動更新の頻度設定（クリックで編集）"
+					>
+						<button
+							onClick={() => setShowEditSchedule((s) => !s)}
+							className="flex items-center gap-1 px-2 py-1 text-[10px] sm:text-[11px] bg-bg-surface3 text-text-muted border border-border rounded-full hover:bg-bg-surface3/70 transition-colors cursor-pointer"
+						>
+							<CalendarClock size={9} />
+							{topic.updateFrequency === "daily" || topic.isDaily
+								? "毎日"
+								: topic.updateFrequency === "custom" && topic.customIntervalDays
+									? `${topic.customIntervalDays}日毎`
+									: "毎週"}
+						</button>
+					</Tooltip>
 					{stale && !isFetching && (
-						<span className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-warm/8 text-warm border border-warm/20 rounded-full">
-							<Clock size={9} />
-							更新待ち
+						<span className="flex items-center gap-1 px-2 py-1 text-[10px] bg-warm/8 text-warm border border-warm/20 rounded-full">
+							<Clock size={8} />
+							<span className="hidden sm:inline">更新待ち</span>
 						</span>
 					)}
 					{isFetching && (
-						<span className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-accent/8 text-accent border border-accent/20 rounded-full">
-							<RefreshCw size={9} className="animate-spin" />
-							取得中...
+						<span className="flex items-center gap-1 px-2 py-1 text-[10px] bg-accent/8 text-accent border border-accent/20 rounded-full">
+							<RefreshCw size={8} className="animate-spin" />
+							<span className="hidden sm:inline">取得中...</span>
 						</span>
 					)}
 				</div>
 
-				{/* Meta */}
-				<div className="ml-auto flex items-center gap-4 text-[11px] text-text-dim">
+				{/* Meta - hidden on very small screens */}
+				<div className="hidden md:flex ml-auto items-center gap-3 text-[10px] text-text-dim">
 					<span className="flex items-center gap-1">
-						<Eye size={10} />
-						{weeklyViews}回/週
+						<Eye size={9} />
+						{weeklyViews}/週
 					</span>
 					<span className="flex items-center gap-1">
-						<Eye size={10} />
-						{monthlyViews}回/月
+						<Eye size={9} />
+						{monthlyViews}/月
 					</span>
 					{lastFetched && (
 						<span className="flex items-center gap-1">
-							<Clock size={10} />
+							<Clock size={9} />
 							{lastFetched}
 						</span>
 					)}
 				</div>
 
-				{/* Refresh button */}
-				<button
-					onClick={handleRefresh}
-					disabled={isFetching}
-					className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-accent/10 hover:bg-accent/20 border border-accent/25 hover:border-accent/40 text-accent disabled:opacity-50`}
-					title={"今すぐ更新"}
-				>
-					<RefreshCw size={12} className={isFetching ? "animate-spin" : ""} />
-					即時更新
-				</button>
-
-				{/* Change topic (AI-assisted) */}
-				<button
-					onClick={() => setShowChangeModal(true)}
-					className={`ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-bg-surface3 hover:bg-bg-surface3/80 border border-border text-text disabled:opacity-50`}
-				>
-					<Zap size={12} />
-					トピックを変更
-				</button>
-
-				{/* Edit schedule */}
-				<button
-					onClick={() => setShowEditSchedule((s) => !s)}
-					className={`ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-bg-surface3 hover:bg-bg-surface3/80 border border-border text-text`}
-				>
-					<Clock size={12} />
-					更新設定を編集
-				</button>
+				{/* Action buttons */}
+				<div className="flex items-center gap-1.5 ml-auto md:ml-0">
+					<button
+						onClick={handleRefresh}
+						disabled={isFetching}
+						className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all bg-accent/10 hover:bg-accent/20 border border-accent/25 hover:border-accent/40 text-accent disabled:opacity-50"
+						title="最新情報を取得"
+					>
+						<RefreshCw size={11} className={isFetching ? "animate-spin" : ""} />
+						<span className="hidden sm:inline">即時更新</span>
+					</button>
+					<button
+						onClick={() => setShowChangeModal(true)}
+						className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all bg-bg-surface3 hover:bg-bg-surface3/80 border border-border text-text"
+						title="AIに相談してトピック名・説明を変更"
+					>
+						<Zap size={11} />
+						<span className="hidden sm:inline">トピック変更</span>
+					</button>
+				</div>
 			</div>
 
 			{/* Scrollable content */}
 			{showEditSchedule && (
-				<div className="px-6 py-3 border-b border-border bg-bg-surface/40">
+				<div className="px-3 sm:px-6 py-3 border-b border-border bg-bg-surface/40 space-y-3">
+					{/* Frequency row */}
 					<div className="flex items-center gap-2">
 						<select
 							value={editFrequency}
@@ -199,6 +254,95 @@ export default function TopicDetailPane() {
 								className="w-28 ml-2 px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
 							/>
 						)}
+					</div>
+
+					{/* Topic type row */}
+					<div>
+						<label className="block text-[11px] font-semibold text-text-muted mb-1 uppercase tracking-wider">
+							トピックタイプ
+						</label>
+						<div className="flex flex-wrap items-center gap-1.5">
+							{(
+								Object.entries(TOPIC_TYPE_CONFIG) as [
+									TopicType,
+									(typeof TOPIC_TYPE_CONFIG)[TopicType],
+								][]
+							).map(([key, cfg]) => (
+								<Tooltip key={key} position="bottom" content={cfg.description}>
+									<button
+										type="button"
+										onClick={() => setEditTopicType(key)}
+										className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[11px] transition-all ${
+											editTopicType === key
+												? "border-accent bg-accent/10 text-accent"
+												: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover"
+										}`}
+									>
+										<span>{cfg.icon}</span>
+										<span className="font-medium">{cfg.label}</span>
+									</button>
+								</Tooltip>
+							))}
+						</div>
+					</div>
+
+					{/* Depth row */}
+					<div>
+						<label className="block text-[11px] font-semibold text-text-muted mb-1 uppercase tracking-wider">
+							調査の深さ
+						</label>
+						<div className="flex flex-wrap items-center gap-1">
+							{(
+								Object.entries(RESEARCH_DEPTH_CONFIG) as [
+									string,
+									(typeof RESEARCH_DEPTH_CONFIG)[ResearchDepth],
+								][]
+							).map(([key, cfg]) => {
+								const level = Number(key) as ResearchDepth;
+								return (
+									<Tooltip
+										key={key}
+										position="bottom"
+										content={
+											<div className="space-y-0.5">
+												<div className="font-semibold">
+													{cfg.label} — {cfg.description}
+												</div>
+												<div className="font-mono text-[10px] opacity-80">
+													{cfg.details}
+												</div>
+												<div className="text-[10px] opacity-70">
+													≈ ${cfg.costPerFetchUsd.toFixed(2)}/回
+												</div>
+											</div>
+										}
+									>
+										<button
+											type="button"
+											onClick={() => setEditResearchDepth(level)}
+											className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-all ${
+												editResearchDepth === level
+													? "border-accent bg-accent/10 text-accent"
+													: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover"
+											}`}
+										>
+											{cfg.label}
+										</button>
+									</Tooltip>
+								);
+							})}
+							<span className="ml-1 text-[10px] text-text-dim">
+								≈ $
+								{RESEARCH_DEPTH_CONFIG[
+									editResearchDepth
+								].costPerFetchUsd.toFixed(2)}
+								/回
+							</span>
+						</div>
+					</div>
+
+					{/* Save / Cancel */}
+					<div className="flex items-center gap-2">
 						<button
 							onClick={async () => {
 								try {
@@ -209,6 +353,8 @@ export default function TopicDetailPane() {
 										isDaily: editFrequency === "daily",
 										dailyTime:
 											editFrequency === "daily" ? editDailyTime : undefined,
+										topicType: editTopicType,
+										researchDepth: editResearchDepth,
 									});
 									toast.success("更新設定を保存しました");
 									setShowEditSchedule(false);
@@ -218,22 +364,35 @@ export default function TopicDetailPane() {
 									);
 								}
 							}}
-							className="ml-4 px-3 py-2 bg-accent/10 hover:bg-accent/20 border border-accent/25 rounded-lg text-sm text-accent"
+							className="px-3 py-2 bg-accent/10 hover:bg-accent/20 border border-accent/25 rounded-lg text-sm text-accent"
 						>
 							保存
 						</button>
 						<button
 							onClick={() => setShowEditSchedule(false)}
-							className="ml-2 px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
+							className="px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
 						>
 							キャンセル
 						</button>
 					</div>
 				</div>
 			)}
-			<div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0">
+			<div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 min-h-0">
 				{/* 1. Summary card */}
 				<SummaryCard topic={topic} />
+
+				{/* 1.5 Type-specific content */}
+				{topic.typeContent && (
+					<CollapsibleSection
+						title={`${TOPIC_TYPE_CONFIG[topic.topicType || "news"].icon} ${TOPIC_TYPE_CONFIG[topic.topicType || "news"].label}詳細`}
+						content={JSON.stringify(topic.typeContent)}
+						defaultOpen={true}
+						accent="blue"
+						badge={topic.topicType || "news"}
+					>
+						<TypeContentView content={topic.typeContent} />
+					</CollapsibleSection>
+				)}
 
 				{/* 2. Search conditions */}
 				<CollapsibleSection
@@ -290,10 +449,14 @@ export default function TopicDetailPane() {
 
 			{/* AI-assisted Change Topic modal */}
 			{showChangeModal && topic && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+					onClick={() => setShowChangeModal(false)}
+				>
 					<div
 						className="glass-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
 						style={{ maxHeight: "90vh" }}
+						onClick={(e) => e.stopPropagation()}
 					>
 						<ChatPanel
 							mode="change"
