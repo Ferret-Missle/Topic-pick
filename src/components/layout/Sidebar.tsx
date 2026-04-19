@@ -242,12 +242,7 @@ export default function Sidebar() {
 					onClick={() => setShowSettings(false)}
 				>
 					<div
-						className="glass-card rounded-2xl w-full max-w-md overflow-hidden"
-						style={{
-							maxHeight: "80vh",
-							display: "flex",
-							flexDirection: "column",
-						}}
+						className="glass-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="p-5 overflow-y-auto">
@@ -266,12 +261,7 @@ export default function Sidebar() {
 					onClick={() => setShowTokenUsage(false)}
 				>
 					<div
-						className="glass-card rounded-2xl w-full max-w-lg overflow-hidden"
-						style={{
-							height: "560px",
-							display: "flex",
-							flexDirection: "column",
-						}}
+						className="glass-card rounded-2xl w-full max-w-lg overflow-hidden h-[560px] flex flex-col"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<TokenUsagePanel onClose={() => setShowTokenUsage(false)} />
@@ -285,12 +275,7 @@ export default function Sidebar() {
 					onClick={() => setShowChangePoll(false)}
 				>
 					<div
-						className="glass-card rounded-2xl w-full max-w-lg overflow-hidden"
-						style={{
-							height: "560px",
-							display: "flex",
-							flexDirection: "column",
-						}}
+						className="glass-card rounded-2xl w-full max-w-lg overflow-hidden h-[560px] flex flex-col"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<ChatPanel

@@ -72,7 +72,10 @@ export default function AuthModal({ onClose }: Props) {
 			>
 				{/* Close */}
 				<button
+					type="button"
 					onClick={onClose}
+					title="認証モーダルを閉じる"
+					aria-label="認証モーダルを閉じる"
 					className="absolute top-5 right-5 text-text-muted hover:text-text transition-colors"
 				>
 					<X size={18} />

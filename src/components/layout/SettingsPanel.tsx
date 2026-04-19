@@ -38,9 +38,11 @@ export default function SettingsPanel() {
 				</div>
 				<div>
 					<button
+						type="button"
 						onClick={() => setStartupUpdate((s) => !s)}
 						className={`relative inline-flex items-center h-6 w-12 rounded-full transition-colors px-1 ${startupUpdate ? "bg-daily" : "bg-bg-surface3 border border-border"}`}
-						aria-pressed={startupUpdate}
+						title="アプリ起動時の自動更新を切り替え"
+						aria-label="アプリ起動時の自動更新を切り替え"
 					>
 						<span
 							className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${startupUpdate ? "translate-x-6" : ""}`}
@@ -50,10 +52,15 @@ export default function SettingsPanel() {
 			</div>
 
 			<div className="p-4 bg-bg-surface2 border border-border rounded-xl">
-				<label className="block text-sm font-semibold text-text mb-2">
+				<label
+					htmlFor="settings-mode"
+					className="block text-sm font-semibold text-text mb-2"
+				>
 					モード
 				</label>
 				<select
+					id="settings-mode"
+					title="更新モード"
 					value={mode}
 					onChange={(e) => setMode(e.target.value as any)}
 					className="w-full px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm"
@@ -88,9 +95,11 @@ function ThemeSelector() {
 				ライト
 			</span>
 			<button
+				type="button"
 				onClick={() => setTheme(isDark ? "light" : "dark")}
 				className={`relative inline-flex items-center h-6 w-12 rounded-full px-1 transition-colors ${isDark ? "bg-daily" : "bg-bg-surface3 border border-border"}`}
-				aria-pressed={isDark}
+				title="テーマを切り替え"
+				aria-label="テーマを切り替え"
 			>
 				<span
 					className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${isDark ? "translate-x-6" : ""}`}

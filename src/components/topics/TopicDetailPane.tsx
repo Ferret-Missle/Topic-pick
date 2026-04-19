@@ -224,6 +224,7 @@ export default function TopicDetailPane() {
 					{/* Frequency row */}
 					<div className="flex items-center gap-2">
 						<select
+							title="更新頻度"
 							value={editFrequency}
 							onChange={(e) => setEditFrequency(e.target.value as any)}
 							className="px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
@@ -235,6 +236,7 @@ export default function TopicDetailPane() {
 						{editFrequency === "daily" && (
 							<input
 								type="time"
+								title="毎日の更新時刻"
 								value={editDailyTime}
 								onChange={(e) => setEditDailyTime(e.target.value)}
 								className="ml-2 px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
@@ -244,6 +246,7 @@ export default function TopicDetailPane() {
 							<input
 								type="number"
 								min={1}
+								title="カスタム更新間隔（日）"
 								placeholder="間隔（日）"
 								value={editCustomDays ?? ""}
 								onChange={(e) =>
@@ -454,8 +457,7 @@ export default function TopicDetailPane() {
 					onClick={() => setShowChangeModal(false)}
 				>
 					<div
-						className="glass-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
-						style={{ maxHeight: "90vh" }}
+						className="glass-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh]"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<ChatPanel

@@ -113,18 +113,11 @@ export default function AddTopicModal({ onClose }: Props) {
 			onClick={onClose}
 		>
 			<div
-				className="glass-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
-				style={{ maxHeight: "90vh" }}
+				className="glass-card rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
 				onClick={(e) => e.stopPropagation()}
 			>
 				{view === "chat" ? (
-					<div
-						style={{
-							height: "580px",
-							display: "flex",
-							flexDirection: "column",
-						}}
-					>
+					<div className="h-[580px] flex flex-col">
 						<ChatPanel
 							mode="add"
 							onClose={() => setView("form")}
@@ -144,7 +137,10 @@ export default function AddTopicModal({ onClose }: Props) {
 								</p>
 							</div>
 							<button
+								type="button"
 								onClick={onClose}
+								title="トピック追加モーダルを閉じる"
+								aria-label="トピック追加モーダルを閉じる"
 								className="text-text-muted hover:text-text transition-colors"
 							>
 								<X size={18} />
@@ -278,6 +274,7 @@ export default function AddTopicModal({ onClose }: Props) {
 								</label>
 								<div className="flex items-center gap-2">
 									<select
+										title="更新頻度"
 										value={frequency}
 										onChange={(e) => setFrequency(e.target.value as any)}
 										className="px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text focus:outline-none"
@@ -289,6 +286,7 @@ export default function AddTopicModal({ onClose }: Props) {
 									{frequency === "daily" && (
 										<input
 											type="time"
+											title="毎日の更新時刻"
 											value={dailyTime}
 											onChange={(e) => setDailyTime(e.target.value)}
 											className="ml-2 px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm text-text"
@@ -298,6 +296,7 @@ export default function AddTopicModal({ onClose }: Props) {
 										<input
 											type="number"
 											min={1}
+											title="カスタム更新間隔（日）"
 											placeholder="間隔（日）"
 											value={customDays ?? ""}
 											onChange={(e) =>

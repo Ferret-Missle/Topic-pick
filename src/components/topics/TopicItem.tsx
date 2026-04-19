@@ -66,18 +66,32 @@ export default function TopicItem({
 			{/* Buzz bar */}
 			{topic.trendData && (
 				<div className="mb-2">
-					<div className="h-0.5 bg-bg-surface3 rounded-full overflow-hidden">
-						<div
-							className={`h-full rounded-full transition-all duration-500 ${
-								buzzLevel > 70
-									? "bg-danger"
-									: buzzLevel > 40
-										? "bg-warm"
-										: "bg-accent"
-							}`}
-							style={{ width: `${buzzLevel}%` }}
+					<svg
+						viewBox="0 0 100 2"
+						preserveAspectRatio="none"
+						className="h-0.5 w-full rounded-full overflow-hidden"
+					>
+						<rect
+							x="0"
+							y="0"
+							width="100"
+							height="2"
+							className="fill-bg-surface3"
 						/>
-					</div>
+						<rect
+							x="0"
+							y="0"
+							width={Math.max(0, Math.min(100, buzzLevel))}
+							height="2"
+							className={
+								buzzLevel > 70
+									? "fill-danger"
+									: buzzLevel > 40
+										? "fill-warm"
+										: "fill-accent"
+							}
+						/>
+					</svg>
 				</div>
 			)}
 

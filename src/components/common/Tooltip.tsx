@@ -1,6 +1,6 @@
 import {
 	useCallback,
-	useEffect,
+	useLayoutEffect,
 	useRef,
 	useState,
 	type ReactNode,
@@ -27,7 +27,6 @@ export default function Tooltip({
 	const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const triggerRef = useRef<HTMLDivElement>(null);
 	const tooltipRef = useRef<HTMLDivElement>(null);
-	const [coords, setCoords] = useState({ top: 0, left: 0 });
 
 	const show = useCallback(() => {
 		timerRef.current = setTimeout(() => setVisible(true), delay);
@@ -49,11 +48,12 @@ export default function Tooltip({
 		setTimeout(() => setVisible(false), 2000);
 	}, []);
 
-	// Recompute position when visible
-	useEffect(() => {
+	// Recompute position when visible and write it directly to the element
+	useLayoutEffect(() => {
 		if (!visible || !triggerRef.current) return;
 		const rect = triggerRef.current.getBoundingClientRect();
 		const tooltipEl = tooltipRef.current;
+		if (!tooltipEl) return;
 		const tooltipW = tooltipEl?.offsetWidth ?? 200;
 		const gap = 8;
 
@@ -69,7 +69,8 @@ export default function Tooltip({
 		const pad = 8;
 		left = Math.max(pad, Math.min(left, window.innerWidth - tooltipW - pad));
 
-		setCoords({ top, left });
+		tooltipEl.style.top = `${top}px`;
+		tooltipEl.style.left = `${left}px`;
 	}, [visible, position]);
 
 	return (
@@ -86,13 +87,8 @@ export default function Tooltip({
 				createPortal(
 					<div
 						ref={tooltipRef}
-						className="fixed z-[9999] pointer-events-none"
+						className={`fixed z-[9999] pointer-events-none ${position === "top" ? "-translate-y-full" : ""}`}
 						role="tooltip"
-						style={{
-							top: coords.top,
-							left: coords.left,
-							transform: position === "top" ? "translateY(-100%)" : undefined,
-						}}
 					>
 						<div className="bg-[#1e1e2e] text-[#cdd6f4] text-[11px] leading-relaxed px-3 py-2 rounded-lg shadow-xl border border-white/10 max-w-[min(280px,calc(100vw-16px))]">
 							{content}

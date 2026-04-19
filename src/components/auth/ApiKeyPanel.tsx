@@ -56,9 +56,16 @@ export default function ApiKeyPanel() {
 			</p>
 
 			<div className="mb-3">
-				<label className="text-xs text-text-muted block mb-1">モデル名</label>
+				<label
+					htmlFor="anthropic-model"
+					className="text-xs text-text-muted block mb-1"
+				>
+					モデル名
+				</label>
 				<div className="relative">
 					<select
+						id="anthropic-model"
+						title="Anthropicモデル名"
 						value={model}
 						onChange={(e) => {
 							setModel(e.target.value);

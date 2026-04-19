@@ -60,20 +60,36 @@ export default function TrendSection({ topic }: Props) {
 						<span className="text-xs text-text-muted">/ 100</span>
 					</div>
 				</div>
-				<div className="relative h-2.5 bg-bg-surface3 rounded-full overflow-hidden">
-					<div
-						className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${segment.color}`}
-						style={{ width: `${td.buzzLevel}%` }}
+				<svg
+					viewBox="0 0 100 10"
+					preserveAspectRatio="none"
+					className="h-2.5 w-full rounded-full overflow-hidden"
+				>
+					<rect
+						x="0"
+						y="0"
+						width="100"
+						height="10"
+						className="fill-bg-surface3"
 					/>
-					{/* Tick marks */}
+					<rect
+						x="0"
+						y="0"
+						width={Math.max(0, Math.min(100, td.buzzLevel))}
+						height="10"
+						className={segment.color.replace("bg-", "fill-")}
+					/>
 					{[20, 40, 60, 80].map((tick) => (
-						<div
+						<rect
 							key={tick}
-							className="absolute top-0 w-px h-full bg-bg/30"
-							style={{ left: `${tick}%` }}
+							x={tick}
+							y="0"
+							width="0.5"
+							height="10"
+							className="fill-bg/30"
 						/>
 					))}
-				</div>
+				</svg>
 				<div className="flex justify-between mt-1 px-0.5">
 					{BUZZ_SEGMENTS.map((s) => (
 						<span key={s.label} className="text-[9px] text-text-dim">

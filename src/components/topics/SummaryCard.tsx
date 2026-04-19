@@ -136,18 +136,32 @@ export default function SummaryCard({ topic }: Props) {
 								{td.buzzLevel}
 							</span>
 						</div>
-						<div className="h-1 bg-bg-surface3 rounded-full overflow-hidden">
-							<div
-								className={`h-full rounded-full transition-all duration-700 ${
-									td.buzzLevel > 70
-										? "bg-danger"
-										: td.buzzLevel > 40
-											? "bg-warm"
-											: "bg-accent"
-								}`}
-								style={{ width: `${td.buzzLevel}%` }}
+						<svg
+							viewBox="0 0 100 4"
+							preserveAspectRatio="none"
+							className="h-1 w-full rounded-full overflow-hidden"
+						>
+							<rect
+								x="0"
+								y="0"
+								width="100"
+								height="4"
+								className="fill-bg-surface3"
 							/>
-						</div>
+							<rect
+								x="0"
+								y="0"
+								width={Math.max(0, Math.min(100, td.buzzLevel))}
+								height="4"
+								className={
+									td.buzzLevel > 70
+										? "fill-danger"
+										: td.buzzLevel > 40
+											? "fill-warm"
+											: "fill-accent"
+								}
+							/>
+						</svg>
 					</div>
 
 					{/* Weekly change */}
