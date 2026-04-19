@@ -4,8 +4,37 @@ import type {
 	ResearchDepth,
 	TopicType,
 } from "../types";
+import { calculateUsageTokens, calculateUsageUsd } from "../utils/usageCost";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
+
+type AnthropicUsage = {
+	input_tokens?: number;
+	output_tokens?: number;
+	cache_creation_input_tokens?: number;
+	cache_read_input_tokens?: number;
+	server_tool_use?: {
+		web_search_requests?: number;
+		web_fetch_requests?: number;
+	};
+};
+
+export interface FetchTopicNewsUsage {
+	model: string;
+	inputTokens: number;
+	outputTokens: number;
+	cacheCreationInputTokens: number;
+	cacheReadInputTokens: number;
+	webSearchRequests: number;
+	webFetchRequests: number;
+	totalTokens: number;
+	usd?: number;
+}
+
+export interface FetchTopicNewsResult {
+	data: AINewsResponse;
+	usage?: FetchTopicNewsUsage;
+}
 
 function getSavedModel(): string {
 	try {
@@ -21,6 +50,34 @@ function getSavedModel(): string {
 
 function getModel(): string {
 	return getSavedModel();
+}
+
+function extractUsage(
+	model: string,
+	usage: AnthropicUsage,
+): FetchTopicNewsUsage {
+	const inputTokens = usage.input_tokens || 0;
+	const outputTokens = usage.output_tokens || 0;
+	const cacheCreationInputTokens = usage.cache_creation_input_tokens || 0;
+	const cacheReadInputTokens = usage.cache_read_input_tokens || 0;
+	const webSearchRequests = usage.server_tool_use?.web_search_requests || 0;
+	const webFetchRequests = usage.server_tool_use?.web_fetch_requests || 0;
+	const totalTokens =
+		calculateUsageTokens({ inputTokens, outputTokens }) ||
+		inputTokens + outputTokens;
+	const usd = calculateUsageUsd({ model, inputTokens, outputTokens });
+
+	return {
+		model,
+		inputTokens,
+		outputTokens,
+		cacheCreationInputTokens,
+		cacheReadInputTokens,
+		webSearchRequests,
+		webFetchRequests,
+		totalTokens,
+		usd,
+	};
 }
 
 function getApiKey(): string {
@@ -98,8 +155,13 @@ const DEPTH_PARAMS: Record<ResearchDepth, DepthParams> = {
 };
 
 // ── Common JSON schema parts ───────────────────────────────────────
-function commonSchemaBlock(dp: DepthParams): string {
-	return `  "summary": "概要（日本語、${dp.summaryLength}字程度）",
+function commonSchemaBlock(dp: DepthParams, depth: ResearchDepth): string {
+	const summaryInstruction =
+		depth === 5
+			? "概要（日本語、500字以上。2〜4段落に分け、内容の切れ目ごとに改行し、各段落の先頭は1文字下げる）"
+			: `概要（日本語、${dp.summaryLength}字程度）`;
+
+	return `  "summary": "${summaryInstruction}",
   "searchQueries": ["使用した検索クエリ1", "検索クエリ2"],
   "rawItems": [
     {"title":"記事タイトル","source":"メディア名","date":"YYYY-MM-DD","snippet":"記事の要約（100字程度）","url":"記事URL"}
@@ -262,7 +324,7 @@ function buildSystemPrompt(topicType: TopicType, depth: ResearchDepth): string {
 
 返答するJSON形式:
 {
-${commonSchemaBlock(dp)},
+${commonSchemaBlock(dp, depth)},
 ${typeSchema}
 }
 
@@ -347,7 +409,7 @@ export async function fetchTopicNews(
 	topicDescription: string,
 	topicType: TopicType = "news",
 	researchDepth: ResearchDepth = 3,
-): Promise<AINewsResponse> {
+): Promise<FetchTopicNewsResult> {
 	const key = getApiKey();
 	if (!key)
 		throw new Error(
@@ -355,6 +417,7 @@ export async function fetchTopicNews(
 		);
 
 	const dp = DEPTH_PARAMS[researchDepth];
+	const model = getModel();
 	const systemPrompt = buildSystemPrompt(topicType, researchDepth);
 	const typePrompt = TYPE_USER_PROMPTS[topicType];
 	const userPrompt = `トピック名: ${topicName}\n説明: ${topicDescription || "なし"}\n\n${typePrompt}`;
@@ -363,7 +426,7 @@ export async function fetchTopicNews(
 		method: "POST",
 		headers: buildHeaders(),
 		body: JSON.stringify({
-			model: getModel(),
+			model,
 			max_tokens: dp.maxTokens,
 			system: systemPrompt,
 			tools: [{ type: "web_search_20250305", name: "web_search" }],
@@ -373,7 +436,6 @@ export async function fetchTopicNews(
 
 	if (!response.ok) {
 		const msg = await parseErrorResponse(response);
-		const model = getModel();
 		if (msg && msg.includes(model)) {
 			throw new Error(
 				`モデル "${model}" にアクセスできません。キーに権限があるか確認してください: ${msg}`,
@@ -384,6 +446,7 @@ export async function fetchTopicNews(
 
 	const data = (await response.json()) as {
 		content: Array<{ type: string; text?: string }>;
+		usage?: AnthropicUsage;
 	};
 
 	const textContent = data.content
@@ -395,7 +458,10 @@ export async function fetchTopicNews(
 	if (!jsonMatch) throw new Error("AIからの応答を解析できませんでした");
 
 	const parsed = repairAndParseJSON(jsonMatch[0]) as AINewsResponse;
-	return parsed;
+	return {
+		data: parsed,
+		usage: data.usage ? extractUsage(model, data.usage) : undefined,
+	};
 }
 
 // ── Topic consultation chat ────────────────────────────────────────

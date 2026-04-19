@@ -1,20 +1,40 @@
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import { db } from "../../firebase";
 import { getSavedApiKey } from "../../services/aiService";
+import { backfillUsageCosts } from "../../services/firestoreService";
 import { COLLECTION_USERS } from "../../utils/constants";
+import { calculateUsageUsd } from "../../utils/usageCost";
 
 type UsageRecord = {
 	date: string; // ISO
 	tokens: number;
 	usd?: number;
 	key?: string;
+	model?: string;
+	inputTokens?: number;
+	outputTokens?: number;
 };
 
 function formatUSD(v: number) {
 	return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
+function calculateRecordUsd(
+	record: UsageRecord,
+	fallbackPricePerThousand: number,
+) {
+	const recalculatedUsd = calculateUsageUsd(record);
+	if (recalculatedUsd !== undefined) return recalculatedUsd;
+
+	if (typeof record.usd === "number") {
+		return record.usd;
+	}
+
+	return (record.tokens || 0) * (fallbackPricePerThousand / 1000);
 }
 
 export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
@@ -95,6 +115,9 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 						tokens: data.tokens || 0,
 						usd: data.usd,
 						key: data.key,
+						model: data.model,
+						inputTokens: data.inputTokens,
+						outputTokens: data.outputTokens,
 					};
 				});
 				setRecords(recs);
@@ -109,6 +132,7 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 	// (aggregation is now handled by dailyData in the chart section below)
 
 	const [rangeDays, setRangeDays] = useState<number>(7); // 0 = all
+	const [backfilling, setBackfilling] = useState(false);
 	const [tooltip, setTooltip] = useState<{
 		day: string;
 		usd: number;
@@ -131,10 +155,7 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 		const map = new Map<string, number>();
 		filtered.forEach((r) => {
 			const day = r.date.slice(0, 10); // YYYY-MM-DD
-			const usd =
-				typeof r.usd === "number"
-					? r.usd
-					: (r.tokens || 0) * (pricePerThousand / 1000);
+			const usd = calculateRecordUsd(r, pricePerThousand);
 			map.set(day, (map.get(day) || 0) + usd);
 		});
 
@@ -161,6 +182,22 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 		return `${k.slice(0, 4)}…${k.slice(-4)}`;
 	}
 
+	async function handleBackfillUsage() {
+		if (!firebaseUser || backfilling) return;
+		setBackfilling(true);
+		try {
+			const result = await backfillUsageCosts(firebaseUser.uid);
+			toast.success(
+				`使用量データを補正しました: ${result.updated}件更新 / ${result.skipped}件スキップ`,
+			);
+		} catch (error) {
+			console.error("Usage backfill failed:", error);
+			toast.error("使用量データの補正に失敗しました");
+		} finally {
+			setBackfilling(false);
+		}
+	}
+
 	// SVG chart dimensions — widen dynamically so bars stay readable
 	const barSlotMin = 18; // minimum px per bar slot in viewBox units
 	const baseW = 420;
@@ -185,15 +222,25 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 				<div className="flex items-center gap-2">
 					<h3 className="font-display font-semibold text-lg">使用料金 (USD)</h3>
 				</div>
-				<button onClick={onClose} className="text-text-muted hover:text-text">
+				<button
+					onClick={onClose}
+					type="button"
+					title="使用料金パネルを閉じる"
+					aria-label="使用料金パネルを閉じる"
+					className="text-text-muted hover:text-text"
+				>
 					<X size={16} />
 				</button>
 			</div>
 
 			{/* Period selector */}
 			<div className="mb-3 flex items-center gap-3">
-				<label className="text-xs text-text-muted">期間</label>
+				<label htmlFor="usage-range" className="text-xs text-text-muted">
+					期間
+				</label>
 				<select
+					id="usage-range"
+					title="表示期間"
 					value={rangeDays}
 					onChange={(e) => setRangeDays(Number(e.target.value))}
 					className="px-3 py-1.5 bg-bg-surface3 border border-border rounded-lg text-sm"
@@ -210,8 +257,12 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 
 			{/* API key filter */}
 			<div className="mb-3 space-y-1">
-				<label className="text-xs text-text-muted">APIキーで絞り込み</label>
+				<label htmlFor="usage-key-filter" className="text-xs text-text-muted">
+					APIキーで絞り込み
+				</label>
 				<select
+					id="usage-key-filter"
+					title="APIキーで絞り込み"
 					value={selectedKey}
 					onChange={(e) => setSelectedKey(e.target.value)}
 					className="w-full px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm"
@@ -226,12 +277,17 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 
 			{/* Price per 1k */}
 			<div className="mb-3 flex items-center gap-2">
-				<label className="text-xs text-text-muted">
+				<label
+					htmlFor="usage-fallback-price"
+					className="text-xs text-text-muted"
+				>
 					価格 (USD / 1k tokens)
 				</label>
 				<input
+					id="usage-fallback-price"
 					type="number"
 					step="0.01"
+					title="フォールバック単価"
 					value={pricePerThousand}
 					onChange={(e) => setPricePerThousand(Number(e.target.value || 0))}
 					className="ml-2 w-28 px-2 py-1 bg-bg-surface3 border border-border rounded-lg text-sm"
@@ -250,8 +306,8 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 				) : (
 					<svg
 						viewBox={`0 0 ${chartW} ${chartH}`}
+						width={chartW > baseW ? chartW : undefined}
 						className="w-full"
-						style={{ minWidth: chartW > baseW ? `${chartW}px` : undefined }}
 					>
 						{/* Y-axis grid + labels */}
 						{yTicks.map((v, i) => {
@@ -384,17 +440,27 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 
 			<div className="flex items-center gap-2 mb-2">
 				<button
+					onClick={handleBackfillUsage}
+					type="button"
+					disabled={!firebaseUser || backfilling}
+					className="px-3 py-2 bg-accent text-white rounded-lg text-xs disabled:opacity-50"
+				>
+					{backfilling ? "補正中..." : "過去データ補正"}
+				</button>
+				<button
 					onClick={() => {
 						localStorage.removeItem("topicpulse_usage_records");
 						setRecords([]);
 					}}
+					type="button"
 					className="px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-xs"
 				>
 					データ削除
 				</button>
 			</div>
 			<p className="text-[11px] text-text-muted">
-				※ 表示は概算です。USDはトークン数から推定しています。
+				※ inputTokens / outputTokens があるデータは Anthropic Usage
+				と同じ式で再計算します。
 			</p>
 		</div>
 	);

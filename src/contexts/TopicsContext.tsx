@@ -12,6 +12,7 @@ import {
 	fetchTopicNews,
 	getSavedApiKey,
 	hasApiKey,
+	type FetchTopicNewsResult,
 } from "../services/aiService";
 import {
 	createTopic,
@@ -21,7 +22,7 @@ import {
 	subscribeToTopics,
 	updateTopic,
 } from "../services/firestoreService";
-import type { AINewsResponse, ResearchDepth, Topic, TopicType } from "../types";
+import type { ResearchDepth, Topic, TopicType } from "../types";
 import {
 	ANALYTICS_MONTHLY_DAYS,
 	ANALYTICS_WEEKLY_DAYS,
@@ -167,38 +168,50 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 		setFetching((s) => ({ ...s, [topic.id]: true }));
 
 		try {
-			const result: AINewsResponse = await fetchTopicNews(
+			const result: FetchTopicNewsResult = await fetchTopicNews(
 				topic.name,
 				topic.description,
 				topic.topicType || "news",
 				topic.researchDepth || 3,
 			);
 			await updateTopic(firebaseUser.uid, topic.id, {
-				summary: result.summary,
-				searchQueries: result.searchQueries,
-				rawItems: result.rawItems,
-				trendData: result.trendData,
-				typeContent: result.typeContent,
+				summary: result.data.summary,
+				searchQueries: result.data.searchQueries,
+				rawItems: result.data.rawItems,
+				trendData: result.data.trendData,
+				typeContent: result.data.typeContent,
 				lastFetched: new Date().toISOString(),
 			});
 
-			// Record estimated usage (approximation) to Firestore
-			try {
-				const json = JSON.stringify(result);
-				const tokensEstimate = Math.max(1, Math.ceil(json.length / 4));
-				const pricePer1k = Number(
-					localStorage.getItem("topicpulse_price_per_1k") || 0.03,
+			if (result.usage) {
+				try {
+					const key = getSavedApiKey();
+					if (result.usage.usd === undefined) {
+						console.warn(
+							"Usage cost recorded without USD because model pricing is unknown:",
+							result.usage.model,
+						);
+					}
+					await recordUsage(firebaseUser.uid, {
+						date: new Date().toISOString(),
+						tokens: result.usage.totalTokens,
+						usd: result.usage.usd,
+						key,
+						model: result.usage.model,
+						inputTokens: result.usage.inputTokens,
+						outputTokens: result.usage.outputTokens,
+						cacheCreationInputTokens: result.usage.cacheCreationInputTokens,
+						cacheReadInputTokens: result.usage.cacheReadInputTokens,
+						webSearchRequests: result.usage.webSearchRequests,
+						webFetchRequests: result.usage.webFetchRequests,
+					});
+				} catch (e) {
+					console.error("Usage recording failed:", e);
+				}
+			} else {
+				console.warn(
+					"Anthropic response did not include usage; usage record was skipped.",
 				);
-				const usd = (tokensEstimate * pricePer1k) / 1000;
-				const key = getSavedApiKey();
-				await recordUsage(firebaseUser.uid, {
-					date: new Date().toISOString(),
-					tokens: tokensEstimate,
-					usd,
-					key,
-				});
-			} catch (e) {
-				// ignore usage recording errors
 			}
 		} catch (err) {
 			console.error("Fetch failed:", err);

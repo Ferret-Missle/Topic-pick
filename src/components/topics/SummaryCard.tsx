@@ -31,6 +31,22 @@ const scaleConfig = {
 	viral: { label: "バイラル", dot: "bg-danger" },
 };
 
+const SUMMARY_SECTION_BREAK =
+	/([。！？])(?=(?:[■●◆]|[0-9０-９]+[.)．]|[一二三四五六七八九十]+[、.)．]|(?:背景|現状|要点|ポイント|理由|要因|影響|課題|懸念|比較|事例|今後|見通し|総括|まとめ|結論|市場|競合|補足|直近動向|注目点|示唆|対応|評価)[:：]))/gu;
+
+function formatSummaryParagraphs(summary: string): string[] {
+	const normalized = summary
+		.replace(/\r\n/g, "\n")
+		.replace(/[ \t]+\n/g, "\n")
+		.replace(/\n{3,}/g, "\n\n")
+		.replace(SUMMARY_SECTION_BREAK, "$1\n\n");
+
+	return normalized
+		.split(/\n{2,}/)
+		.map((paragraph) => paragraph.replace(/^[\s\u3000]+|[\s\u3000]+$/gu, ""))
+		.filter(Boolean);
+}
+
 export default function SummaryCard({ topic }: Props) {
 	const td = topic.trendData;
 	const sentiment = td ? sentimentConfig[td.sentiment] : null;
@@ -39,6 +55,9 @@ export default function SummaryCard({ topic }: Props) {
 	const weeklyChange = td?.weeklyChange;
 	const changePositive = weeklyChange !== undefined && weeklyChange > 0;
 	const changeNegative = weeklyChange !== undefined && weeklyChange < 0;
+	const summaryParagraphs = topic.summary
+		? formatSummaryParagraphs(topic.summary)
+		: [];
 
 	return (
 		<div className="relative bg-gradient-to-br from-bg-surface2 to-bg-surface rounded-2xl border border-border p-5 overflow-hidden">
@@ -82,7 +101,16 @@ export default function SummaryCard({ topic }: Props) {
 			{/* Summary text */}
 			<div className="relative">
 				{topic.summary ? (
-					<p className="text-sm text-text leading-relaxed">{topic.summary}</p>
+					<div className="space-y-3 text-sm text-text leading-7">
+						{summaryParagraphs.map((paragraph, index) => (
+							<p
+								key={`${topic.id}-summary-${index}`}
+								className="whitespace-pre-wrap indent-[1em]"
+							>
+								{paragraph}
+							</p>
+						))}
+					</div>
 				) : (
 					<div className="space-y-2">
 						{[...Array(4)].map((_, i) => (

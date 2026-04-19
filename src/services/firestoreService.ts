@@ -9,6 +9,7 @@ import {
 	query,
 	serverTimestamp,
 	setDoc,
+	writeBatch,
 	type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -18,6 +19,7 @@ import {
 	COLLECTION_TOPICS,
 	COLLECTION_USERS,
 } from "../utils/constants";
+import { calculateUsageTokens, calculateUsageUsd } from "../utils/usageCost";
 
 // ── User ─────────────────────────────────────────────────────────
 export async function upsertUser(
@@ -164,7 +166,19 @@ export async function getAllTopics(userId: string): Promise<Topic[]> {
 // ── Usage recording ─────────────────────────────────────────────────
 export async function recordUsage(
 	userId: string,
-	record: { date: string; tokens: number; usd?: number; key?: string },
+	record: {
+		date: string;
+		tokens: number;
+		usd?: number;
+		key?: string;
+		model?: string;
+		inputTokens?: number;
+		outputTokens?: number;
+		cacheCreationInputTokens?: number;
+		cacheReadInputTokens?: number;
+		webSearchRequests?: number;
+		webFetchRequests?: number;
+	},
 ) {
 	const ref = doc(collection(db, COLLECTION_USERS, userId, "usage"));
 	const payload: Record<string, unknown> = {
@@ -173,6 +187,76 @@ export async function recordUsage(
 	};
 	if (record.usd !== undefined) payload.usd = record.usd;
 	if (record.key !== undefined) payload.key = record.key;
+	if (record.model !== undefined) payload.model = record.model;
+	if (record.inputTokens !== undefined)
+		payload.inputTokens = record.inputTokens;
+	if (record.outputTokens !== undefined)
+		payload.outputTokens = record.outputTokens;
+	if (record.cacheCreationInputTokens !== undefined)
+		payload.cacheCreationInputTokens = record.cacheCreationInputTokens;
+	if (record.cacheReadInputTokens !== undefined)
+		payload.cacheReadInputTokens = record.cacheReadInputTokens;
+	if (record.webSearchRequests !== undefined)
+		payload.webSearchRequests = record.webSearchRequests;
+	if (record.webFetchRequests !== undefined)
+		payload.webFetchRequests = record.webFetchRequests;
 	payload["createdAt"] = serverTimestamp();
 	await setDoc(ref, payload);
+}
+
+export async function backfillUsageCosts(userId: string): Promise<{
+	updated: number;
+	skipped: number;
+}> {
+	const snap = await getDocs(collection(db, COLLECTION_USERS, userId, "usage"));
+	let batch = writeBatch(db);
+	let opsInBatch = 0;
+	let updated = 0;
+	let skipped = 0;
+
+	for (const usageDoc of snap.docs) {
+		const data = usageDoc.data() as {
+			model?: string;
+			inputTokens?: number;
+			outputTokens?: number;
+			tokens?: number;
+			usd?: number;
+		};
+
+		const usd = calculateUsageUsd(data);
+		const tokens = calculateUsageTokens(data);
+		if (usd === undefined || tokens === undefined) {
+			skipped += 1;
+			continue;
+		}
+
+		const needsUsdUpdate = Math.abs((data.usd || 0) - usd) > 0.000001;
+		const needsTokenUpdate = data.tokens !== tokens;
+		if (!needsUsdUpdate && !needsTokenUpdate) {
+			skipped += 1;
+			continue;
+		}
+
+		batch.set(
+			usageDoc.ref,
+			{
+				usd,
+				tokens,
+			},
+			{ merge: true },
+		);
+		opsInBatch += 1;
+		if (opsInBatch >= 450) {
+			await batch.commit();
+			batch = writeBatch(db);
+			opsInBatch = 0;
+		}
+		updated += 1;
+	}
+
+	if (opsInBatch > 0) {
+		await batch.commit();
+	}
+
+	return { updated, skipped };
 }
