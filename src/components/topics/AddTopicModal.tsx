@@ -182,7 +182,7 @@ export default function AddTopicModal({ onClose }: Props) {
 								<label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
 									トピックタイプ
 								</label>
-								<div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+								<div className="grid grid-cols-[repeat(auto-fit,minmax(88px,1fr))] gap-1.5">
 									{topicTypes.map(([key, cfg]) => (
 										<Tooltip
 											key={key}
@@ -192,7 +192,7 @@ export default function AddTopicModal({ onClose }: Props) {
 											<button
 												type="button"
 												onClick={() => setTopicType(key)}
-												className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-xs transition-all ${
+												className={`w-full flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-xs transition-all ${
 													topicType === key
 														? "border-accent bg-accent/10 text-accent"
 														: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover hover:text-text"

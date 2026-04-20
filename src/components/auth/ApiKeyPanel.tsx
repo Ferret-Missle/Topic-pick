@@ -167,45 +167,58 @@ export default function ApiKeyPanel() {
 						{entries.map((entry) => (
 							<div
 								key={entry.id}
-								className="flex items-start gap-3 p-3 rounded-lg border border-border bg-bg-surface3"
+								className="flex flex-col gap-3 p-3 rounded-lg border border-border bg-bg-surface3 sm:flex-row sm:items-start"
 							>
-								<input
-									type="radio"
-									name="active-api-key"
-									checked={activeId === entry.id}
-									onChange={() => activateEntry(entry.id)}
-									title={`${entry.label} を使用する`}
-									aria-label={`${entry.label} を使用する`}
-									className="mt-1"
-								/>
-								<button
-									type="button"
-									onClick={() => activateEntry(entry.id)}
-									className="flex-1 min-w-0 text-left"
-								>
-									<div className="flex items-center gap-2 flex-wrap">
-										<span className="text-xs font-semibold text-text truncate">
-											{entry.label}
-										</span>
-										<span className="px-1.5 py-0.5 rounded-full text-[10px] border border-accent/20 bg-accent/10 text-accent">
-											{AI_PROVIDER_CONFIG[entry.provider].label}
-										</span>
-										{activeId === entry.id && (
-											<span className="px-1.5 py-0.5 rounded-full text-[10px] border border-daily/20 bg-daily/10 text-daily">
-												使用中
+								<div className="flex items-start gap-3 min-w-0 w-full sm:flex-1">
+									<input
+										type="radio"
+										name="active-api-key"
+										checked={activeId === entry.id}
+										onChange={() => activateEntry(entry.id)}
+										title={`${entry.label} を使用する`}
+										aria-label={`${entry.label} を使用する`}
+										className="mt-1 shrink-0"
+									/>
+									<button
+										type="button"
+										onClick={() => activateEntry(entry.id)}
+										className="flex-1 min-w-0 text-left"
+									>
+										<div className="flex items-center gap-2 flex-wrap">
+											<span className="text-xs font-semibold text-text truncate">
+												{entry.label}
 											</span>
-										)}
-									</div>
-									<div className="mt-1 text-[11px] text-text-muted font-mono truncate">
-										{obfuscateKey(entry.apiKey)}
-									</div>
-								</button>
-								<div className="min-w-[132px] space-y-1.5">
+											<span className="px-1.5 py-0.5 rounded-full text-[10px] border border-accent/20 bg-accent/10 text-accent">
+												{AI_PROVIDER_CONFIG[entry.provider].label}
+											</span>
+											{activeId === entry.id && (
+												<span className="px-1.5 py-0.5 rounded-full text-[10px] border border-daily/20 bg-daily/10 text-daily">
+													使用中
+												</span>
+											)}
+										</div>
+										<div className="mt-1 text-[11px] text-text-muted font-mono truncate">
+											{obfuscateKey(entry.apiKey)}
+										</div>
+									</button>
+									<button
+										type="button"
+										onClick={() => {
+											removeApiKeyEntry(entry.id);
+											toast.success("APIキーを削除しました");
+										}}
+										className="shrink-0 text-text-muted hover:text-danger transition-colors mt-0.5 sm:hidden"
+										title="APIキーを削除"
+									>
+										<Trash2 size={14} />
+									</button>
+								</div>
+								<div className="w-full min-w-0 space-y-1.5 sm:w-[148px] sm:min-w-[148px]">
 									<div>
 										<label className="block text-[10px] text-text-muted">
 											表示名
 										</label>
-										<div className="mt-1 flex items-center gap-1.5">
+										<div className="mt-1 flex flex-col gap-1.5 sm:flex-row sm:items-center">
 											<input
 												type="text"
 												title="登録済みAPIキーの表示名を変更"
@@ -223,12 +236,12 @@ export default function ApiKeyPanel() {
 														handleEntryLabelSave(entry);
 													}
 												}}
-												className="flex-1 min-w-0 px-2 py-1.5 bg-bg-surface2 border border-border rounded-lg text-[11px] text-text"
+												className="w-full min-w-0 px-2 py-1.5 bg-bg-surface2 border border-border rounded-lg text-[11px] text-text"
 											/>
 											<button
 												type="button"
 												onClick={() => handleEntryLabelSave(entry)}
-												className="px-2 py-1.5 border border-border rounded-lg text-[10px] text-text-muted hover:text-text hover:border-accent/40 transition-colors"
+												className="w-full px-2 py-1.5 border border-border rounded-lg text-[10px] text-text-muted hover:text-text hover:border-accent/40 transition-colors sm:w-auto"
 												title="表示名を保存"
 											>
 												保存
@@ -260,7 +273,7 @@ export default function ApiKeyPanel() {
 										removeApiKeyEntry(entry.id);
 										toast.success("APIキーを削除しました");
 									}}
-									className="text-text-muted hover:text-danger transition-colors mt-0.5"
+									className="hidden shrink-0 text-text-muted hover:text-danger transition-colors mt-0.5 sm:block"
 									title="APIキーを削除"
 								>
 									<Trash2 size={14} />
