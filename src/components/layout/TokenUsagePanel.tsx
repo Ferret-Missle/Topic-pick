@@ -4,16 +4,24 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import { db } from "../../firebase";
-import { getSavedApiKey } from "../../services/aiService";
+import {
+	API_KEYS_UPDATED_EVENT_NAME,
+	getActiveApiKeyEntry,
+	getSavedApiKeyEntries,
+} from "../../services/aiService";
 import { backfillUsageCosts } from "../../services/firestoreService";
-import { COLLECTION_USERS } from "../../utils/constants";
+import type { AIProvider, ApiKeyEntry } from "../../types";
+import { AI_PROVIDER_CONFIG, COLLECTION_USERS } from "../../utils/constants";
 import { calculateUsageUsd } from "../../utils/usageCost";
 
 type UsageRecord = {
 	date: string; // ISO
 	tokens: number;
 	usd?: number;
+	provider?: AIProvider;
 	key?: string;
+	keyId?: string;
+	keyLabel?: string;
 	model?: string;
 	inputTokens?: number;
 	outputTokens?: number;
@@ -39,6 +47,9 @@ function calculateRecordUsd(
 
 export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 	const { firebaseUser } = useAuth();
+	const [savedEntries, setSavedEntries] = useState<ApiKeyEntry[]>(() =>
+		getSavedApiKeyEntries(),
+	);
 
 	const [records, setRecords] = useState<UsageRecord[]>(() => {
 		try {
@@ -51,8 +62,8 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 
 	const [selectedKey, setSelectedKey] = useState<string>(() => {
 		try {
-			const saved = getSavedApiKey();
-			return saved ? saved : "all";
+			const saved = getActiveApiKeyEntry();
+			return saved?.id || "all";
 		} catch {
 			return "all";
 		}
@@ -68,30 +79,52 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 	useEffect(() => {
 		localStorage.setItem("topicpulse_price_per_1k", String(pricePerThousand));
 	}, [pricePerThousand]);
-
-	const keys = useMemo(() => {
-		const s = new Set<string>();
-		try {
-			const saved = getSavedApiKey();
-			if (saved) s.add(saved);
-		} catch {
-			// ignore
+	useEffect(() => {
+		function syncSavedEntries() {
+			setSavedEntries(getSavedApiKeyEntries());
 		}
-		records.forEach((r) => r.key && s.add(r.key));
-		return ["all", ...Array.from(s)];
-	}, [records]);
+
+		syncSavedEntries();
+		window.addEventListener(API_KEYS_UPDATED_EVENT_NAME, syncSavedEntries);
+		return () => {
+			window.removeEventListener(API_KEYS_UPDATED_EVENT_NAME, syncSavedEntries);
+		};
+	}, []);
+
+	const keyOptions = useMemo(() => {
+		const options = [{ value: "all", label: "全てのキー" }];
+		const seen = new Set<string>(["all"]);
+
+		savedEntries.forEach((entry) => {
+			if (seen.has(entry.id)) return;
+			seen.add(entry.id);
+			options.push({
+				value: entry.id,
+				label: `${AI_PROVIDER_CONFIG[entry.provider].label} / ${entry.label} / ${entry.model}`,
+			});
+		});
+
+		return options;
+	}, [savedEntries]);
 
 	useEffect(() => {
 		try {
-			const saved = getSavedApiKey();
-			if (saved && selectedKey !== saved) {
-				setSelectedKey(saved);
+			const saved = getActiveApiKeyEntry();
+			if (saved?.id && selectedKey === "all") {
+				setSelectedKey(saved.id);
 			}
 		} catch {
 			// ignore
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	useEffect(() => {
+		if (selectedKey === "all") return;
+		if (!keyOptions.some((option) => option.value === selectedKey)) {
+			setSelectedKey("all");
+		}
+	}, [keyOptions, selectedKey]);
 
 	// Subscribe to Firestore usage docs when logged in
 	useEffect(() => {
@@ -114,7 +147,10 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 						date,
 						tokens: data.tokens || 0,
 						usd: data.usd,
+						provider: data.provider,
 						key: data.key,
+						keyId: data.keyId,
+						keyLabel: data.keyLabel,
 						model: data.model,
 						inputTokens: data.inputTokens,
 						outputTokens: data.outputTokens,
@@ -149,7 +185,8 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 			const t = new Date(r.date).getTime();
 			if (isNaN(t)) return false;
 			if (t < since) return false;
-			if (selectedKey !== "all" && r.key !== selectedKey) return false;
+			const recordKey = r.keyId || r.key || "";
+			if (selectedKey !== "all" && recordKey !== selectedKey) return false;
 			return true;
 		});
 		const map = new Map<string, number>();
@@ -175,12 +212,6 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 
 	const totalUsd = dailyData.reduce((s, d) => s + d.usd, 0);
 	const maxDayUsd = Math.max(...dailyData.map((d) => d.usd), 0.001);
-
-	function obfuscateKey(k: string) {
-		if (!k) return k;
-		if (k.length <= 8) return k.replace(/.(?=.{2})/g, "*");
-		return `${k.slice(0, 4)}…${k.slice(-4)}`;
-	}
 
 	async function handleBackfillUsage() {
 		if (!firebaseUser || backfilling) return;
@@ -267,12 +298,15 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 					onChange={(e) => setSelectedKey(e.target.value)}
 					className="w-full px-3 py-2 bg-bg-surface3 border border-border rounded-lg text-sm"
 				>
-					{keys.map((k) => (
-						<option key={k} value={k}>
-							{k === "all" ? "全てのキー" : obfuscateKey(k)}
+					{keyOptions.map((option) => (
+						<option key={option.value} value={option.value}>
+							{option.label}
 						</option>
 					))}
 				</select>
+				<p className="text-[11px] text-text-dim">
+					削除済みキーの履歴は個別選択には出さず、「全てのキー」に含めます。
+				</p>
 			</div>
 
 			{/* Price per 1k */}
@@ -459,8 +493,8 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 				</button>
 			</div>
 			<p className="text-[11px] text-text-muted">
-				※ inputTokens / outputTokens があるデータは Anthropic Usage
-				と同じ式で再計算します。
+				※
+				モデル別単価が分かるデータは再計算し、単価情報が不足している古い記録のみフォールバック単価を使います。
 			</p>
 		</div>
 	);

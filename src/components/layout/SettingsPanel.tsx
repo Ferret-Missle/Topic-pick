@@ -33,7 +33,7 @@ export default function SettingsPanel() {
 						アプリ起動時に自動更新
 					</p>
 					<p className="text-[11px] text-text-muted">
-						アプリ起動時に更新処理を走らせます（有効にするにはAPIキーが必要）
+						アプリ起動時に更新処理を走らせます。継続利用は自分のAPIキー登録を前提にしてください。
 					</p>
 				</div>
 				<div>
@@ -72,6 +72,13 @@ export default function SettingsPanel() {
 				</select>
 				<p className="text-[11px] text-text-muted mt-2">
 					モードにより自動でAIを呼び出すかどうかを制御します。
+				</p>
+			</div>
+			<div className="p-4 bg-bg-surface2 border border-border rounded-xl space-y-2">
+				<p className="text-sm font-semibold text-text">公開運用メモ</p>
+				<p className="text-[11px] leading-relaxed text-text-muted">
+					お試し更新はサーバ経由で固定の Gemini
+					軽量モデルを使います。ユーザー自身のAPIキーを使う通常更新は、将来的にすべてサーバプロキシへ移行する前提です。
 				</p>
 			</div>
 			<div className="p-4 bg-bg-surface2 border border-border rounded-xl">

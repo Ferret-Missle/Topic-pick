@@ -6,6 +6,7 @@ import {
 	MessageCircle,
 	Plus,
 	Settings,
+	X,
 	Zap,
 } from "lucide-react";
 import { useState } from "react";
@@ -246,9 +247,20 @@ export default function Sidebar() {
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="p-5 overflow-y-auto">
-							<h2 className="font-display font-bold text-lg text-text mb-4">
-								設定
-							</h2>
+							<div className="flex items-center justify-between mb-4">
+								<h2 className="font-display font-bold text-lg text-text">
+									設定
+								</h2>
+								<button
+									onClick={() => setShowSettings(false)}
+									type="button"
+									title="設定パネルを閉じる"
+									aria-label="設定パネルを閉じる"
+									className="text-text-muted hover:text-text"
+								>
+									<X size={16} />
+								</button>
+							</div>
 							<SettingsPanel />
 						</div>
 					</div>

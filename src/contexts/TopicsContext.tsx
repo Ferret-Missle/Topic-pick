@@ -9,8 +9,10 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import {
+	API_KEYS_UPDATED_EVENT_NAME,
 	fetchTopicNews,
-	getSavedApiKey,
+	getActiveApiKeyEntry,
+	getTrialUsageStatus,
 	hasApiKey,
 	type FetchTopicNewsResult,
 } from "../services/aiService";
@@ -22,7 +24,12 @@ import {
 	subscribeToTopics,
 	updateTopic,
 } from "../services/firestoreService";
-import type { ResearchDepth, Topic, TopicType } from "../types";
+import type {
+	ResearchDepth,
+	Topic,
+	TopicType,
+	TrialUsageStatus,
+} from "../types";
 import {
 	ANALYTICS_MONTHLY_DAYS,
 	ANALYTICS_WEEKLY_DAYS,
@@ -63,6 +70,8 @@ interface TopicsContextValue {
 	getMonthlyViews: (topic: Topic) => number;
 	getLowInterestTopics: () => Topic[];
 	needsUpdate: (topic: Topic) => boolean;
+	trialUsage: TrialUsageStatus | null;
+	hasUserApiKey: boolean;
 }
 
 const TopicsContext = createContext<TopicsContextValue | null>(null);
@@ -73,6 +82,10 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 	const [loading, setLoading] = useState(true);
 	const [fetching, setFetching] = useState<FetchingState>({});
 	const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+	const [trialUsage, setTrialUsage] = useState<TrialUsageStatus | null>(null);
+	const [hasUserApiKeyState, setHasUserApiKeyState] = useState<boolean>(() =>
+		hasApiKey(),
+	);
 
 	// ── Refs to avoid stale closures without causing re-renders ──────
 	// Holds the latest topics list so effects can read it without depending on it
@@ -88,6 +101,40 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 
 	const tier = appUser?.tier ?? "anonymous";
 	const maxTopics = MAX_TOPICS[tier];
+
+	useEffect(() => {
+		function syncApiKeyState() {
+			setHasUserApiKeyState(hasApiKey());
+		}
+
+		syncApiKeyState();
+		window.addEventListener(API_KEYS_UPDATED_EVENT_NAME, syncApiKeyState);
+		return () => {
+			window.removeEventListener(API_KEYS_UPDATED_EVENT_NAME, syncApiKeyState);
+		};
+	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		async function loadTrialUsage() {
+			if (!firebaseUser || hasUserApiKeyState) {
+				if (!cancelled) setTrialUsage(null);
+				return;
+			}
+			try {
+				const status = await getTrialUsageStatus();
+				if (!cancelled) setTrialUsage(status);
+			} catch {
+				if (!cancelled) setTrialUsage(null);
+			}
+		}
+
+		void loadTrialUsage();
+		return () => {
+			cancelled = true;
+		};
+	}, [firebaseUser, hasUserApiKeyState]);
 
 	// ── Subscribe to Firestore ───────────────────────────────────────
 	useEffect(() => {
@@ -159,7 +206,7 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 		return Date.now() - lastFetch > interval;
 	}
 
-	async function doFetch(topic: Topic) {
+	async function doFetch(topic: Topic, options?: { allowTrial?: boolean }) {
 		if (!firebaseUser) return;
 
 		// Guard: prevent duplicate concurrent fetches
@@ -173,7 +220,11 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 				topic.description,
 				topic.topicType || "news",
 				topic.researchDepth || 3,
+				{ allowTrial: options?.allowTrial },
 			);
+			if (result.trialStatus) {
+				setTrialUsage(result.trialStatus);
+			}
 			await updateTopic(firebaseUser.uid, topic.id, {
 				summary: result.data.summary,
 				searchQueries: result.data.searchQueries,
@@ -183,9 +234,9 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 				lastFetched: new Date().toISOString(),
 			});
 
-			if (result.usage) {
+			if (result.source === "user-key" && result.usage) {
 				try {
-					const key = getSavedApiKey();
+					const activeEntry = getActiveApiKeyEntry();
 					if (result.usage.usd === undefined) {
 						console.warn(
 							"Usage cost recorded without USD because model pricing is unknown:",
@@ -196,7 +247,10 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 						date: new Date().toISOString(),
 						tokens: result.usage.totalTokens,
 						usd: result.usage.usd,
-						key,
+						provider: result.usage.provider,
+						key: activeEntry?.apiKey,
+						keyId: result.usage.keyId,
+						keyLabel: result.usage.keyLabel,
 						model: result.usage.model,
 						inputTokens: result.usage.inputTokens,
 						outputTokens: result.usage.outputTokens,
@@ -208,9 +262,9 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 				} catch (e) {
 					console.error("Usage recording failed:", e);
 				}
-			} else {
+			} else if (result.source === "user-key") {
 				console.warn(
-					"Anthropic response did not include usage; usage record was skipped.",
+					"Provider response did not include usage; usage record was skipped.",
 				);
 			}
 		} catch (err) {
@@ -301,13 +355,18 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 	}
 
 	async function refreshTopic(id: string) {
-		if (!hasApiKey())
-			throw new Error(
-				"APIキーが設定されていません。設定画面からAnthropicのAPIキーを入力してください。",
-			);
 		const topic = topics.find((t) => t.id === id);
 		if (!topic) return;
-		await doFetch(topic);
+		if (hasApiKey()) {
+			await doFetch(topic);
+			return;
+		}
+		if (trialUsage && !trialUsage.isAvailable) {
+			throw new Error(
+				"お試し更新の上限に達しました。APIキーを追加すると続けて更新できます。",
+			);
+		}
+		await doFetch(topic, { allowTrial: true });
 	}
 
 	return (
@@ -329,6 +388,8 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 				getMonthlyViews,
 				getLowInterestTopics,
 				needsUpdate,
+				trialUsage,
+				hasUserApiKey: hasUserApiKeyState,
 			}}
 		>
 			{children}

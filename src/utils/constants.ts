@@ -1,4 +1,9 @@
-import type { ResearchDepth, SubscriptionTier, TopicType } from "../types";
+import type {
+	AIProvider,
+	ResearchDepth,
+	SubscriptionTier,
+	TopicType,
+} from "../types";
 
 export const MAX_TOPICS: Record<SubscriptionTier, number> = {
 	anonymous: 3,
@@ -20,6 +25,8 @@ export const UPDATE_INTERVAL_WEEKLY = 7 * 24 * 60 * 60 * 1000;
 // Firestore collections
 export const COLLECTION_USERS = "users";
 export const COLLECTION_TOPICS = "topics";
+export const COLLECTION_PRIVATE = "private";
+export const DOC_API_KEYS = "api-keys";
 
 // Interest detection thresholds
 export const LOW_INTEREST_WEEKLY_VIEWS = 1; // < this → low interest
@@ -28,6 +35,78 @@ export const LOW_INTEREST_MIN_AGE_DAYS = 14; // topic must be at least this old
 // Analytics windows
 export const ANALYTICS_WEEKLY_DAYS = 7;
 export const ANALYTICS_MONTHLY_DAYS = 30;
+
+export const TRIAL_LIMIT_PER_MONTH = 5;
+export const TRIAL_PROVIDER: AIProvider = "gemini";
+export const TRIAL_MODEL = "gemini-2.5-flash-lite";
+
+export const AI_PROVIDER_CONFIG: Record<
+	AIProvider,
+	{
+		label: string;
+		consoleUrl: string;
+		keyPlaceholder: string;
+		description: string;
+	}
+> = {
+	anthropic: {
+		label: "Anthropic",
+		consoleUrl: "https://console.anthropic.com",
+		keyPlaceholder: "sk-ant-...",
+		description: "Claude 系モデル。現在のブラウザ直叩き実装に対応。",
+	},
+	gemini: {
+		label: "Google Gemini",
+		consoleUrl: "https://aistudio.google.com/apikey",
+		keyPlaceholder: "AIza...",
+		description: "無料で試しやすく、Google Search grounding に対応。",
+	},
+};
+
+export const AI_MODEL_OPTIONS: Record<
+	AIProvider,
+	Array<{ id: string; label: string; description: string }>
+> = {
+	anthropic: [
+		{
+			id: "claude-sonnet-4-6",
+			label: "Claude Sonnet 4.6",
+			description: "標準用途向けの主力モデル",
+		},
+		{
+			id: "claude-opus-4-7",
+			label: "Claude Opus 4.7",
+			description: "高性能だが高コスト",
+		},
+		{
+			id: "claude-haiku-4-5",
+			label: "Claude Haiku 4.5",
+			description: "軽量・低コスト",
+		},
+	],
+	gemini: [
+		{
+			id: "gemini-2.5-flash-lite",
+			label: "Gemini 2.5 Flash-Lite",
+			description: "軽量・無料枠向けの推奨モデル",
+		},
+		{
+			id: "gemini-2.5-flash",
+			label: "Gemini 2.5 Flash",
+			description: "速度と品質のバランスが良い",
+		},
+		{
+			id: "gemini-2.5-pro",
+			label: "Gemini 2.5 Pro",
+			description: "高性能だが無料枠はやや厳しめ",
+		},
+	],
+};
+
+export const DEFAULT_MODEL_BY_PROVIDER: Record<AIProvider, string> = {
+	anthropic: AI_MODEL_OPTIONS.anthropic[0].id,
+	gemini: AI_MODEL_OPTIONS.gemini[0].id,
+};
 
 // ── Topic type config ────────────────────────────────────────────
 export const TOPIC_TYPE_CONFIG: Record<

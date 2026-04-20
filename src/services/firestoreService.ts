@@ -13,11 +13,13 @@ import {
 	type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import type { AppUser, Topic, ViewRecord } from "../types";
+import type { AppUser, Topic, UserApiKeyState, ViewRecord } from "../types";
 import {
 	ANALYTICS_MONTHLY_DAYS,
+	COLLECTION_PRIVATE,
 	COLLECTION_TOPICS,
 	COLLECTION_USERS,
+	DOC_API_KEYS,
 } from "../utils/constants";
 import { calculateUsageTokens, calculateUsageUsd } from "../utils/usageCost";
 
@@ -51,6 +53,66 @@ export async function upgradeUserToPremium(uid: string) {
 		doc(db, COLLECTION_USERS, uid),
 		{ tier: "premium" },
 		{ merge: true },
+	);
+}
+
+// ── User API key state ──────────────────────────────────────────
+function getUserApiKeyStateRef(uid: string) {
+	return doc(db, COLLECTION_USERS, uid, COLLECTION_PRIVATE, DOC_API_KEYS);
+}
+
+export async function getUserApiKeyState(
+	uid: string,
+): Promise<UserApiKeyState | null> {
+	const snap = await getDoc(getUserApiKeyStateRef(uid));
+	if (!snap.exists()) return null;
+	const data = snap.data() as {
+		entries?: UserApiKeyState["entries"];
+		activeId?: string;
+	};
+	return {
+		entries: Array.isArray(data.entries) ? data.entries : [],
+		activeId: typeof data.activeId === "string" ? data.activeId : undefined,
+	};
+}
+
+export async function setUserApiKeyState(uid: string, state: UserApiKeyState) {
+	await setDoc(
+		getUserApiKeyStateRef(uid),
+		{
+			entries: state.entries,
+			activeId: state.activeId || null,
+			updatedAt: serverTimestamp(),
+		},
+		{ merge: true },
+	);
+}
+
+export function subscribeToUserApiKeyState(
+	uid: string,
+	callback: (state: UserApiKeyState | null) => void,
+): Unsubscribe {
+	return onSnapshot(
+		getUserApiKeyStateRef(uid),
+		(snap) => {
+			if (!snap.exists()) {
+				callback(null);
+				return;
+			}
+			const data = snap.data() as {
+				entries?: UserApiKeyState["entries"];
+				activeId?: string;
+			};
+			callback({
+				entries: Array.isArray(data.entries) ? data.entries : [],
+				activeId:
+					typeof data.activeId === "string" ? data.activeId : undefined,
+			});
+		},
+		(err) => {
+			console.error("subscribeToUserApiKeyState error:", err);
+			callback(null);
+		},
 	);
 }
 
@@ -170,7 +232,10 @@ export async function recordUsage(
 		date: string;
 		tokens: number;
 		usd?: number;
+		provider?: string;
 		key?: string;
+		keyId?: string;
+		keyLabel?: string;
 		model?: string;
 		inputTokens?: number;
 		outputTokens?: number;
@@ -186,7 +251,10 @@ export async function recordUsage(
 		tokens: record.tokens,
 	};
 	if (record.usd !== undefined) payload.usd = record.usd;
+	if (record.provider !== undefined) payload.provider = record.provider;
 	if (record.key !== undefined) payload.key = record.key;
+	if (record.keyId !== undefined) payload.keyId = record.keyId;
+	if (record.keyLabel !== undefined) payload.keyLabel = record.keyLabel;
 	if (record.model !== undefined) payload.model = record.model;
 	if (record.inputTokens !== undefined)
 		payload.inputTokens = record.inputTokens;

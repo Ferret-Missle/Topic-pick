@@ -1,5 +1,7 @@
 import {
+	EmailAuthProvider,
 	createUserWithEmailAndPassword,
+	linkWithCredential,
 	onAuthStateChanged,
 	signInAnonymously,
 	signInWithEmailAndPassword,
@@ -14,6 +16,10 @@ import {
 	type ReactNode,
 } from "react";
 import { auth } from "../firebase";
+import {
+	syncApiKeyStorageScope,
+	transferApiKeyEntriesBetweenUsers,
+} from "../services/aiService";
 import { getAppUser, upsertUser } from "../services/firestoreService";
 import type { AppUser, SubscriptionTier } from "../types";
 
@@ -28,7 +34,20 @@ interface AuthContextValue {
 	refreshAppUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const AUTH_CONTEXT_KEY = "__topicpulse_auth_context__";
+
+type AuthContextSingleton = typeof globalThis & {
+	[AUTH_CONTEXT_KEY]?: ReturnType<typeof createContext<AuthContextValue | null>>;
+};
+
+const authContextSingleton = globalThis as AuthContextSingleton;
+
+const AuthContext =
+	authContextSingleton[AUTH_CONTEXT_KEY] ??
+	createContext<AuthContextValue | null>(null);
+
+authContextSingleton[AUTH_CONTEXT_KEY] = AuthContext;
+AuthContext.displayName = "AuthContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
@@ -58,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		const unsub = onAuthStateChanged(auth, async (user) => {
 			setFirebaseUser(user);
+			syncApiKeyStorageScope(user);
 			try {
 				if (user) {
 					await loadAppUser(user);
@@ -82,11 +102,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	}
 
 	async function register(email: string, password: string) {
+		const currentUser = auth.currentUser;
+		if (currentUser?.isAnonymous) {
+			const sourceUser = { uid: currentUser.uid, isAnonymous: true };
+			const credential = EmailAuthProvider.credential(email, password);
+			const result = await linkWithCredential(currentUser, credential);
+			transferApiKeyEntriesBetweenUsers(sourceUser, {
+				uid: result.user.uid,
+				isAnonymous: false,
+			});
+			return;
+		}
+
 		await createUserWithEmailAndPassword(auth, email, password);
 	}
 
 	async function login(email: string, password: string) {
-		await signInWithEmailAndPassword(auth, email, password);
+		const currentUser = auth.currentUser;
+		const sourceUser = currentUser?.isAnonymous
+			? { uid: currentUser.uid, isAnonymous: true }
+			: null;
+		const result = await signInWithEmailAndPassword(auth, email, password);
+		if (sourceUser) {
+			transferApiKeyEntriesBetweenUsers(sourceUser, {
+				uid: result.user.uid,
+				isAnonymous: result.user.isAnonymous,
+			});
+		}
 	}
 
 	async function logout() {

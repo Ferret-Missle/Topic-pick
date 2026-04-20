@@ -30,6 +30,8 @@ export default function TopicDetailPane() {
 		selectedTopicId,
 		fetching,
 		refreshTopic,
+		trialUsage,
+		hasUserApiKey,
 		modifyTopic,
 		getWeeklyViews,
 		getMonthlyViews,
@@ -83,6 +85,7 @@ export default function TopicDetailPane() {
 	const weeklyViews = getWeeklyViews(topic);
 	const monthlyViews = getMonthlyViews(topic);
 	const stale = needsUpdate(topic);
+	const canUseTrialRefresh = hasUserApiKey || trialUsage?.isAvailable !== false;
 
 	const lastFetched = topic.lastFetched
 		? format(new Date(topic.lastFetched), "M月d日 HH:mm", { locale: ja })
@@ -198,11 +201,21 @@ export default function TopicDetailPane() {
 
 				{/* Action buttons */}
 				<div className="flex items-center gap-1.5 ml-auto md:ml-0">
+					{!hasUserApiKey && trialUsage && (
+						<span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] bg-bg-surface3 text-text-muted border border-border rounded-full">
+							<Search size={8} />
+							残り {trialUsage.remainingCount}/{trialUsage.maxCount}
+						</span>
+					)}
 					<button
 						onClick={handleRefresh}
-						disabled={isFetching}
+						disabled={isFetching || !canUseTrialRefresh}
 						className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all bg-accent/10 hover:bg-accent/20 border border-accent/25 hover:border-accent/40 text-accent disabled:opacity-50"
-						title="最新情報を取得"
+						title={
+							canUseTrialRefresh
+								? "最新情報を取得"
+								: "今月のお試し更新回数を使い切っています"
+						}
 					>
 						<RefreshCw size={11} className={isFetching ? "animate-spin" : ""} />
 						<span className="hidden sm:inline">即時更新</span>

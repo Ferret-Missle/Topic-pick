@@ -13,6 +13,30 @@ export type TopicType =
 
 export type ResearchDepth = 1 | 2 | 3 | 4 | 5;
 
+export type AIProvider = "anthropic" | "gemini";
+
+export interface ApiKeyEntry {
+	id: string;
+	provider: AIProvider;
+	label: string;
+	apiKey: string;
+	model: string;
+	createdAt: string;
+}
+
+export interface UserApiKeyState {
+	entries: ApiKeyEntry[];
+	activeId?: string;
+}
+
+export interface TrialUsageStatus {
+	monthKey: string;
+	usedCount: number;
+	maxCount: number;
+	remainingCount: number;
+	isAvailable: boolean;
+}
+
 // ── User ─────────────────────────────────────────────────────────
 export interface AppUser {
 	uid: string;

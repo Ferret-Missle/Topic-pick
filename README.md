@@ -8,7 +8,7 @@ AIを活用したトピック監視・トレンド分析アプリ
 - **Styling**: Tailwind CSS
 - **Database**: Firebase Firestore
 - **Auth**: Firebase Authentication
-- **AI**: Anthropic Claude API（Web Search付き）
+- **AI**: Anthropic Claude / Google Gemini
 - **Deploy**: Vercel
 
 ---
@@ -47,15 +47,34 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 ```
 
-### 4. Anthropic API キーの設定
+### 4. AI API キーの設定
 
-アプリ内の「APIキー設定」からユーザーが各自入力するか、環境変数に設定:
+通常利用は、アプリ内の「APIキー設定」からユーザーが各自のキーを登録します。現在は Anthropic と Gemini を選択できます。
+
+必要ならフロントエンド用の既定値も設定できます:
 
 ```
 VITE_ANTHROPIC_API_KEY=sk-ant-...
+VITE_ANTHROPIC_MODEL=claude-sonnet-4-20250514
+VITE_GEMINI_API_KEY=AIza...
+VITE_GEMINI_MODEL=gemini-2.5-flash-lite
 ```
 
-### 5. 開発サーバー起動
+### 5. お試し更新のサーバー設定
+
+APIキー未登録ユーザー向けの「月5回まで」のお試し更新は、Vercel のサーバレス関数から運営者の Gemini キーで実行します。以下を Vercel 環境変数へ設定してください。
+
+```
+TRIAL_GEMINI_API_KEY=AIza...
+TRIAL_GEMINI_MODEL=gemini-2.5-flash-lite
+FIREBASE_ADMIN_PROJECT_ID=...
+FIREBASE_ADMIN_CLIENT_EMAIL=...
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+`FIREBASE_ADMIN_PRIVATE_KEY` は改行を `\n` で保持した文字列を使います。
+
+### 6. 開発サーバー起動
 
 ```bash
 npm run dev
@@ -82,7 +101,8 @@ npm run dev
 ### 自動更新
 - 週次自動更新（全プラン）
 - デイリー自動更新（指定トピック or Premiumは全件）
-- 即時更新ボタン（Premiumのみ）
+- 即時更新ボタン
+- APIキー未登録ユーザー向けの月5回お試し更新
 
 ### 分析表示
 - AIサマリカード（盛り上がり指数・センチメント・関心規模）
@@ -107,10 +127,13 @@ src/
 ├── firebase.ts     # Firebase初期化
 ├── services/
 │   ├── firestoreService.ts  # Firestore CRUD
-│   └── aiService.ts         # Anthropic API呼び出し
+│   └── aiService.ts         # マルチプロバイダAI呼び出し
 ├── contexts/
 │   ├── AuthContext.tsx      # 認証状態管理
 │   └── TopicsContext.tsx    # トピック状態管理
+├── api/
+│   ├── _lib/firebaseAdmin.js       # Firebase Admin 初期化
+│   └── trial-topic-refresh.js      # お試し更新用のサーバレスAPI
 └── components/
     ├── layout/     # Sidebar, AppLayout
     ├── auth/       # AuthModal, ApiKeyPanel
@@ -118,3 +141,10 @@ src/
     ├── topics/     # TopicItem, SummaryCard, TrendSection, ...
     └── common/     # CollapsibleSection, LoadingScreen
 ```
+
+---
+
+## TODO
+
+- 公開運用では、通常のユーザー所有 API キーによる AI 呼び出しも含めて、最終的にはすべてサーバー経由へ移行する
+- 現状でサーバー経由なのは、お試し更新の固定 Gemini 軽量モデルのみ
