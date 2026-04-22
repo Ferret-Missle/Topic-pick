@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import { db } from "../../firebase";
 import {
 	API_KEYS_UPDATED_EVENT_NAME,
@@ -47,6 +48,7 @@ function calculateRecordUsd(
 
 export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 	const { firebaseUser } = useAuth();
+	const { theme } = useTheme();
 	const [savedEntries, setSavedEntries] = useState<ApiKeyEntry[]>(() =>
 		getSavedApiKeyEntries(),
 	);
@@ -246,6 +248,36 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 		const step = maxDayUsd / 3;
 		return [0, step, step * 2, maxDayUsd].map((v) => +v.toFixed(4));
 	}, [maxDayUsd]);
+	const isDark = theme === "dark";
+	const chartLabelStyle = {
+		fill: isDark
+			? "rgb(var(--color-text-muted))"
+			: "rgb(var(--color-text-dim))",
+		stroke: isDark
+			? "rgb(var(--color-bg-surface2))"
+			: "rgb(var(--color-bg-surface))",
+		strokeWidth: isDark ? 1.4 : 0.8,
+		paintOrder: "stroke",
+	} as const;
+	const tooltipDateStyle = {
+		fill: isDark
+			? "rgb(var(--color-text-muted))"
+			: "rgb(var(--color-text-dim))",
+	} as const;
+	const tooltipValueStyle = {
+		fill: "rgb(var(--color-text))",
+		stroke: isDark
+			? "rgb(var(--color-bg-surface3))"
+			: "rgb(var(--color-bg-surface))",
+		strokeWidth: isDark ? 1 : 0.6,
+		paintOrder: "stroke",
+	} as const;
+	const tooltipBoxFill = isDark
+		? "rgb(var(--color-bg-surface3) / 0.98)"
+		: "rgb(var(--color-bg-surface) / 0.96)";
+	const tooltipBoxStroke = isDark
+		? "rgb(var(--color-border-hover))"
+		: "rgb(var(--color-border))";
 
 	return (
 		<div className="p-4 flex flex-col h-full overflow-y-auto">
@@ -362,8 +394,8 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 										x={padL - 4}
 										y={y + 3}
 										textAnchor="end"
-										className="text-text-dim"
 										fontSize={9}
+										style={chartLabelStyle}
 									>
 										${v < 0.01 ? v.toFixed(4) : v.toFixed(2)}
 									</text>
@@ -416,9 +448,9 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 											x={x + barW / 2}
 											y={chartH - padB + 14}
 											textAnchor="middle"
-											className="text-text-dim"
 											fontSize={8}
 											transform={`rotate(-35, ${x + barW / 2}, ${chartH - padB + 14})`}
+											style={chartLabelStyle}
 										>
 											{d.day.slice(5)}
 										</text>
@@ -442,16 +474,16 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 											width={76}
 											height={24}
 											rx={6}
-											className="fill-bg-surface3"
-											stroke="currentColor"
+											fill={tooltipBoxFill}
+											stroke={tooltipBoxStroke}
 											strokeWidth={0.5}
 										/>
 										<text
 											x={tx}
 											y={ty - 10}
 											textAnchor="middle"
-											className="text-text-muted"
 											fontSize={8}
+											style={tooltipDateStyle}
 										>
 											{tooltip.day.slice(5)}
 										</text>
@@ -459,9 +491,9 @@ export default function TokenUsagePanel({ onClose }: { onClose: () => void }) {
 											x={tx}
 											y={ty - 1}
 											textAnchor="middle"
-											className="text-text"
 											fontSize={9}
 											fontWeight="600"
+											style={tooltipValueStyle}
 										>
 											{formatUSD(tooltip.usd)}
 										</text>
