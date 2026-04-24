@@ -113,30 +113,35 @@ export const TOPIC_TYPE_CONFIG: Record<
 	TopicType,
 	{ label: string; icon: string; description: string }
 > = {
+	techResearch: {
+		label: "技術・研究",
+		icon: "🧪",
+		description: "技術動向と研究知見、争点をまとめて把握",
+	},
 	news: {
 		label: "ニュース",
 		icon: "📰",
-		description: "時系列で最新ニュースを追跡",
+		description: "変化の流れ、転換点、理由、見通しを追跡",
 	},
 	bestPractice: {
 		label: "ベストプラクティス",
 		icon: "💡",
-		description: "具体的な手法・運用方法を深掘り",
+		description: "今すぐ使える推奨、非推奨、注目パターンを整理",
 	},
 	technology: {
 		label: "技術比較",
 		icon: "⚙️",
-		description: "技術の比較・選定分析",
+		description: "旧モード。次回更新で技術・研究に統合されます",
 	},
 	research: {
 		label: "リサーチ",
 		icon: "🔬",
-		description: "論文・研究動向の調査",
+		description: "旧モード。次回更新で技術・研究に統合されます",
 	},
 	industry: {
 		label: "業界動向",
 		icon: "🏢",
-		description: "市場・企業の動きを分析",
+		description: "旧モード。次回更新でニュースに統合されます",
 	},
 };
 

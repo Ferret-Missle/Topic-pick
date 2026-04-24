@@ -1,5 +1,11 @@
 import { useCallback, useState } from "react";
-import type { ResearchDepth, Topic, TopicType } from "../../types";
+import type {
+	ResearchDepth,
+	SelectableTopicType,
+	Topic,
+	TopicType,
+} from "../../types";
+import { normalizeTopicType } from "../../utils/topicModes";
 
 export type TopicSettingsFrequency = "daily" | "weekly" | "custom";
 
@@ -7,7 +13,7 @@ export interface TopicSettingsFormValues {
 	frequency: TopicSettingsFrequency;
 	customDays?: number;
 	dailyTime: string;
-	topicType: TopicType;
+	topicType: SelectableTopicType;
 	researchDepth: ResearchDepth;
 }
 
@@ -15,7 +21,7 @@ export interface TopicSettingsChangeHandlers {
 	onFrequencyChange: (frequency: TopicSettingsFrequency) => void;
 	onCustomDaysChange: (customDays?: number) => void;
 	onDailyTimeChange: (dailyTime: string) => void;
-	onTopicTypeChange: (topicType: TopicType) => void;
+	onTopicTypeChange: (topicType: SelectableTopicType) => void;
 	onResearchDepthChange: (researchDepth: ResearchDepth) => void;
 }
 
@@ -36,7 +42,7 @@ const DEFAULT_TOPIC_SETTINGS_FORM_VALUES: TopicSettingsFormValues = {
 	frequency: "weekly",
 	customDays: undefined,
 	dailyTime: "08:00",
-	topicType: "news",
+	topicType: "bestPractice",
 	researchDepth: 3,
 };
 
@@ -63,7 +69,7 @@ export function getTopicSettingsFormValuesFromTopic(
 				: topic.updateFrequency || "weekly",
 		customDays: topic.customIntervalDays,
 		dailyTime: topic.dailyTime || "08:00",
-		topicType: topic.topicType || "news",
+		topicType: normalizeTopicType(topic.topicType as TopicType | undefined),
 		researchDepth: topic.researchDepth || 3,
 	});
 }
@@ -94,7 +100,7 @@ export function useTopicSettingsForm(
 		setSettings((current) => ({ ...current, dailyTime }));
 	}, []);
 
-	const setTopicType = useCallback((topicType: TopicType) => {
+	const setTopicType = useCallback((topicType: SelectableTopicType) => {
 		setSettings((current) => ({ ...current, topicType }));
 	}, []);
 

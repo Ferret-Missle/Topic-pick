@@ -80,6 +80,7 @@ type FetchOptions = {
 
 function buildFetchedTopicUpdate(result: FetchTopicNewsResult): Partial<Topic> {
 	return {
+		topicType: result.topicType,
 		summary: result.data.summary,
 		searchQueries: result.data.searchQueries,
 		rawItems: result.data.rawItems,
@@ -209,7 +210,7 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 				const result = await fetchTopicNews(
 					topic.name,
 					topic.description,
-					topic.topicType || "news",
+					topic.topicType || "bestPractice",
 					topic.researchDepth || 3,
 					{ allowTrial: options?.allowTrial },
 				);
@@ -324,7 +325,7 @@ export function TopicsProvider({ children }: { children: ReactNode }) {
 			frequency: "daily" | "weekly" | "custom" = "weekly",
 			customDays?: number,
 			dailyTime?: string,
-			topicType: TopicType = "news",
+			topicType: TopicType = "bestPractice",
 			researchDepth: ResearchDepth = 3,
 		) => {
 			if (!firebaseUser) throw new Error("ログインが必要です");

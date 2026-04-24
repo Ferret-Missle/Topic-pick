@@ -1,14 +1,18 @@
+import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import type {
 	BestPracticeTypeContent,
+	EvidenceLink,
 	IndustryTypeContent,
 	NewsTypeContent,
+	ResearchLogic,
 	ResearchTypeContent,
+	StructuredBestPracticeTypeContent,
+	StructuredNewsTypeContent,
+	TechResearchTypeContent,
 	TechnologyTypeContent,
 	TopicTypeContent,
 } from "../../types";
-
-// ── Shared helpers ─────────────────────────────────────────────────
 
 function SourceLink({ title, url }: { title: string; url?: string }) {
 	if (!url) return <span className="text-[11px] text-text-dim">{title}</span>;
@@ -29,7 +33,7 @@ function Badge({
 	children,
 	color = "gray",
 }: {
-	children: React.ReactNode;
+	children: ReactNode;
 	color?: "red" | "yellow" | "green" | "blue" | "purple" | "gray";
 }) {
 	const colors: Record<string, string> = {
@@ -49,633 +53,483 @@ function Badge({
 	);
 }
 
-const impactColor = (v: string) =>
-	v === "high" ? "red" : v === "medium" ? "yellow" : "green";
-const effortColor = (v: string) =>
-	v === "high" ? "red" : v === "medium" ? "yellow" : "green";
-const maturityColor = (v: string) =>
-	v === "established" ? "green" : v === "emerging" ? "yellow" : "purple";
-const curveColor = (v: string) =>
-	v === "easy" ? "green" : v === "moderate" ? "yellow" : "red";
-const stageColor = (v: string) =>
-	v === "commercializing" ? "green" : v === "applied" ? "blue" : "purple";
-const confidenceColor = (v: string) =>
-	v === "consensus" ? "green" : v === "confirmed" ? "blue" : "yellow";
+function SectionTitle({ children }: { children: ReactNode }) {
+	return <h4 className="text-xs font-semibold text-text mb-2">{children}</h4>;
+}
 
-// ── News View ──────────────────────────────────────────────────────
+function Panel({
+	children,
+	tone = "default",
+}: {
+	children: ReactNode;
+	tone?: "default" | "accent" | "green" | "yellow" | "red";
+}) {
+	const tones = {
+		default: "bg-bg-surface2 border-border",
+		accent: "bg-accent/5 border-accent/20",
+		green: "bg-green-500/5 border-green-500/20",
+		yellow: "bg-yellow-500/5 border-yellow-500/20",
+		red: "bg-red-500/5 border-red-500/20",
+	};
+	return <div className={`rounded-lg border p-3 ${tones[tone]}`}>{children}</div>;
+}
 
-function NewsView({ content }: { content: NewsTypeContent }) {
+function EvidenceSection({ evidenceLinks }: { evidenceLinks: EvidenceLink[] }) {
+	if (!evidenceLinks.length) return null;
 	return (
-		<div className="space-y-4">
-			{/* Timeline */}
-			<div className="relative pl-4 border-l-2 border-accent/30 space-y-4">
-				{content.timeline?.map((item, i) => (
-					<div key={i} className="relative">
-						<div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-accent border-2 border-bg-surface" />
-						<div className="bg-bg-surface2 border border-border rounded-lg p-3">
-							<div className="flex items-center gap-2 mb-1">
-								<span className="text-[11px] text-text-dim font-mono">
-									{item.date}
-								</span>
-								<Badge color={impactColor(item.impact)}>{item.impact}</Badge>
-							</div>
-							<h4 className="text-sm font-semibold text-text mb-1">
-								{item.headline}
-							</h4>
-							<p className="text-xs text-text-muted leading-relaxed">
-								{item.detail}
-							</p>
-							{item.sources?.length > 0 && (
-								<div className="flex flex-wrap gap-2 mt-2">
-									{item.sources.map((s, j) => (
-										<SourceLink key={j} title={s.title} url={s.url} />
-									))}
-								</div>
-							)}
+		<div>
+			<SectionTitle>根拠リンク</SectionTitle>
+			<div className="space-y-2">
+				{evidenceLinks.map((link, index) => (
+					<Panel key={`${link.title}-${index}`}>
+						<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+							<SourceLink title={link.title} url={link.url} />
+							<Badge color="gray">{link.sourceType}</Badge>
 						</div>
-					</div>
+						<p className="text-[11px] text-text-muted leading-relaxed">
+							{link.relevance}
+						</p>
+					</Panel>
 				))}
 			</div>
+		</div>
+	);
+}
 
-			{/* Outlook */}
-			{content.outlook && (
-				<div className="bg-accent/5 border border-accent/20 rounded-lg p-3">
-					<h4 className="text-xs font-semibold text-accent mb-1">
-						今後の見通し
-					</h4>
-					<p className="text-xs text-text-muted leading-relaxed">
-						{content.outlook}
-					</p>
-				</div>
+function ResearchLogicSection({ researchLogic }: { researchLogic: ResearchLogic }) {
+	return (
+		<Panel>
+			<SectionTitle>調査ロジック</SectionTitle>
+			<div className="space-y-2 text-xs text-text-muted leading-relaxed">
+				<p>{researchLogic.searchApproach}</p>
+				{researchLogic.sourcePriority?.length > 0 && (
+					<div>
+						<span className="text-text-dim">優先ソース:</span>{" "}
+						{researchLogic.sourcePriority.join(" / ")}
+					</div>
+				)}
+				{researchLogic.selectionCriteria?.length > 0 && (
+					<ul className="space-y-1">
+						{researchLogic.selectionCriteria.map((criterion, index) => (
+							<li key={index} className="flex items-start gap-1.5">
+								<span className="text-accent mt-0.5">▸</span>
+								{criterion}
+							</li>
+						))}
+					</ul>
+				)}
+				{researchLogic.limitations && researchLogic.limitations.length > 0 && (
+					<div>
+						<span className="text-text-dim">制約:</span>{" "}
+						{researchLogic.limitations.join(" / ")}
+					</div>
+				)}
+			</div>
+		</Panel>
+	);
+}
+
+function StructuredCommon({
+	reason,
+	evidenceLinks,
+	researchLogic,
+}: {
+	reason: string;
+	evidenceLinks: EvidenceLink[];
+	researchLogic: ResearchLogic;
+}) {
+	return (
+		<div className="space-y-4">
+			{reason && (
+				<Panel tone="accent">
+					<SectionTitle>このモードを推した理由</SectionTitle>
+					<p className="text-xs text-text-muted leading-relaxed">{reason}</p>
+				</Panel>
 			)}
+			<EvidenceSection evidenceLinks={evidenceLinks} />
+			<ResearchLogicSection researchLogic={researchLogic} />
+		</div>
+	);
+}
 
-			{/* Key Players */}
-			{content.keyPlayers?.length > 0 && (
-				<div className="flex flex-wrap gap-1.5">
-					<span className="text-[11px] text-text-dim mr-1">
-						主要プレイヤー:
-					</span>
-					{content.keyPlayers.map((p, i) => (
-						<Badge key={i} color="blue">
-							{p}
-						</Badge>
+function StructuredBestPracticeView({
+	content,
+}: {
+	content: StructuredBestPracticeTypeContent;
+}) {
+	return (
+		<div className="space-y-4">
+			<div>
+				<SectionTitle>推奨パターン</SectionTitle>
+				<div className="space-y-2">
+					{content.recommendedPatterns.map((pattern, index) => (
+						<Panel key={`${pattern.name}-${index}`} tone="green">
+							<div className="flex items-center gap-2 mb-2 flex-wrap">
+								<h5 className="text-sm font-semibold text-text">{pattern.name}</h5>
+								<Badge color="green">推奨</Badge>
+							</div>
+							<p className="text-xs text-text-muted leading-relaxed mb-2">
+								{pattern.summary}
+							</p>
+							<p className="text-[11px] text-text leading-relaxed mb-2">
+								{pattern.whyRecommended}
+							</p>
+							{pattern.fitFor.length > 0 && (
+								<div className="flex flex-wrap gap-1.5 mb-2">
+									{pattern.fitFor.map((item, itemIndex) => (
+										<Badge key={itemIndex} color="blue">
+											{item}
+										</Badge>
+									))}
+								</div>
+							)}
+							{pattern.cautions.length > 0 && (
+								<ul className="space-y-1 text-[11px] text-text-muted">
+									{pattern.cautions.map((item, itemIndex) => (
+										<li key={itemIndex} className="flex items-start gap-1.5">
+											<span className="text-warm mt-0.5">!</span>
+											{item}
+										</li>
+									))}
+								</ul>
+							)}
+						</Panel>
 					))}
 				</div>
-			)}
+			</div>
+
+			<div className="grid gap-3 sm:grid-cols-2">
+				<div>
+					<SectionTitle>アンチパターン</SectionTitle>
+					<div className="space-y-2">
+						{content.antiPatterns.map((pattern, index) => (
+							<Panel key={`${pattern.name}-${index}`} tone="red">
+								<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+									<span className="text-xs font-semibold text-text">{pattern.name}</span>
+									<Badge color="red">非推奨</Badge>
+								</div>
+								<p className="text-[11px] text-text-muted leading-relaxed">{pattern.summary}</p>
+								<p className="text-[11px] text-red-300 mt-1.5">{pattern.risk}</p>
+								<p className="text-[11px] text-text-muted mt-1.5">代替: {pattern.betterOption}</p>
+							</Panel>
+						))}
+					</div>
+				</div>
+
+				<div>
+					<SectionTitle>注目パターン</SectionTitle>
+					<div className="space-y-2">
+						{content.emergingPatterns.map((pattern, index) => (
+							<Panel key={`${pattern.name}-${index}`} tone="yellow">
+								<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+									<span className="text-xs font-semibold text-text">{pattern.name}</span>
+									<Badge color="yellow">注目</Badge>
+								</div>
+								<p className="text-[11px] text-text-muted leading-relaxed">{pattern.summary}</p>
+								<p className="text-[11px] text-text mt-1.5">{pattern.whyWatch}</p>
+								<p className="text-[11px] text-text-muted mt-1.5">{pattern.uncertainty}</p>
+							</Panel>
+						))}
+					</div>
+				</div>
+			</div>
+
+			<StructuredCommon
+				reason={content.recommendationReason}
+				evidenceLinks={content.evidenceLinks}
+				researchLogic={content.researchLogic}
+			/>
 		</div>
 	);
 }
 
-// ── Best Practice View ─────────────────────────────────────────────
-
-function BestPracticeView({ content }: { content: BestPracticeTypeContent }) {
+function StructuredNewsView({ content }: { content: StructuredNewsTypeContent }) {
 	return (
 		<div className="space-y-4">
-			{/* Methods */}
-			{content.methods?.map((method, i) => (
-				<div
-					key={i}
-					className="bg-bg-surface2 border border-border rounded-lg p-4 space-y-3"
-				>
-					<div className="flex items-center gap-2 flex-wrap">
-						<h4 className="text-sm font-semibold text-text">{method.name}</h4>
-						<Badge color="gray">{method.category}</Badge>
-						<Badge color={maturityColor(method.maturityLevel)}>
-							{method.maturityLevel}
-						</Badge>
-					</div>
-					<p className="text-xs text-text-muted leading-relaxed">
-						{method.description}
-					</p>
-
-					{/* Steps */}
-					{method.steps?.length > 0 && (
-						<div>
-							<h5 className="text-[11px] font-semibold text-text-muted mb-1">
-								手順
-							</h5>
-							<ol className="list-decimal list-inside space-y-0.5">
-								{method.steps.map((s, j) => (
-									<li key={j} className="text-xs text-text-muted">
-										{s}
-									</li>
-								))}
-							</ol>
-						</div>
-					)}
-
-					{/* Pros / Cons */}
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						{method.pros?.length > 0 && (
-							<div>
-								<h5 className="text-[11px] font-semibold text-green-400 mb-1">
-									メリット
-								</h5>
-								<ul className="space-y-0.5">
-									{method.pros.map((p, j) => (
-										<li
-											key={j}
-											className="text-xs text-text-muted flex items-start gap-1"
-										>
-											<span className="text-green-400 mt-0.5">+</span>
-											{p}
-										</li>
-									))}
-								</ul>
+			<div>
+				<SectionTitle>重要な転換点</SectionTitle>
+				<div className="space-y-2">
+					{content.pivotalPoints.map((point, index) => (
+						<Panel key={`${point.title}-${index}`} tone="accent">
+							<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+								<span className="text-[11px] font-mono text-text-dim">{point.date}</span>
+								<Badge color={point.impact === "high" ? "red" : point.impact === "medium" ? "yellow" : "green"}>
+									{point.impact}
+								</Badge>
 							</div>
-						)}
-						{method.cons?.length > 0 && (
-							<div>
-								<h5 className="text-[11px] font-semibold text-red-400 mb-1">
-									デメリット
-								</h5>
-								<ul className="space-y-0.5">
-									{method.cons.map((c, j) => (
-										<li
-											key={j}
-											className="text-xs text-text-muted flex items-start gap-1"
-										>
-											<span className="text-red-400 mt-0.5">−</span>
-											{c}
-										</li>
-									))}
-								</ul>
-							</div>
-						)}
-					</div>
-
-					{/* Adoption tips */}
-					{method.adoptionTips && (
-						<p className="text-[11px] text-text-dim italic">
-							💡 {method.adoptionTips}
-						</p>
-					)}
-
-					{/* References */}
-					{method.references?.length > 0 && (
-						<div className="flex flex-wrap gap-2 pt-1 border-t border-border">
-							{method.references.map((r, j) => (
-								<SourceLink key={j} title={r.title} url={r.url} />
-							))}
-						</div>
-					)}
+							<h5 className="text-sm font-semibold text-text mb-1">{point.title}</h5>
+							<p className="text-xs text-text-muted leading-relaxed">{point.whyItMatters}</p>
+						</Panel>
+					))}
 				</div>
-			))}
+			</div>
 
-			{/* Key Insights */}
-			{content.keyInsights?.length > 0 && (
-				<div className="bg-accent/5 border border-accent/20 rounded-lg p-3">
-					<h4 className="text-xs font-semibold text-accent mb-2">重要な考察</h4>
-					<ul className="space-y-1">
-						{content.keyInsights.map((ins, i) => (
-							<li
-								key={i}
-								className="text-xs text-text-muted flex items-start gap-1.5"
-							>
-								<span className="text-accent mt-0.5">▸</span>
-								{ins}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
-
-			{/* Action Items */}
-			{content.actionItems?.length > 0 && (
-				<div>
-					<h4 className="text-xs font-semibold text-text mb-2">
-						アクションアイテム
-					</h4>
-					<div className="space-y-1.5">
-						{content.actionItems.map((ai, i) => (
-							<div
-								key={i}
-								className="flex items-center gap-2 p-2 bg-bg-surface2 border border-border rounded-lg"
-							>
-								<span className="text-xs text-text flex-1">{ai.action}</span>
-								<Badge color={effortColor(ai.effort)}>工数: {ai.effort}</Badge>
-								<Badge color={impactColor(ai.impact)}>効果: {ai.impact}</Badge>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
-		</div>
-	);
-}
-
-// ── Technology View ────────────────────────────────────────────────
-
-function TechnologyView({ content }: { content: TechnologyTypeContent }) {
-	return (
-		<div className="space-y-4">
-			{/* Comparisons */}
-			{content.comparisons?.map((tech, i) => (
-				<div
-					key={i}
-					className="bg-bg-surface2 border border-border rounded-lg p-4 space-y-3"
-				>
-					<div className="flex items-center gap-2 flex-wrap">
-						<h4 className="text-sm font-semibold text-text">{tech.name}</h4>
-						{tech.version && <Badge color="gray">{tech.version}</Badge>}
-						<Badge color="blue">{tech.category}</Badge>
-						<Badge color={curveColor(tech.learningCurve)}>
-							学習: {tech.learningCurve}
-						</Badge>
-					</div>
-
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						<div>
-							<h5 className="text-[11px] font-semibold text-green-400 mb-1">
-								強み
-							</h5>
-							<ul className="space-y-0.5">
-								{tech.strengths?.map((s, j) => (
-									<li
-										key={j}
-										className="text-xs text-text-muted flex items-start gap-1"
-									>
-										<span className="text-green-400 mt-0.5">+</span>
-										{s}
-									</li>
-								))}
-							</ul>
-						</div>
-						<div>
-							<h5 className="text-[11px] font-semibold text-red-400 mb-1">
-								弱み
-							</h5>
-							<ul className="space-y-0.5">
-								{tech.weaknesses?.map((w, j) => (
-									<li
-										key={j}
-										className="text-xs text-text-muted flex items-start gap-1"
-									>
-										<span className="text-red-400 mt-0.5">−</span>
-										{w}
-									</li>
-								))}
-							</ul>
-						</div>
-					</div>
-
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-text-muted">
-						<div>
-							<span className="text-text-dim">最適用途:</span> {tech.bestFor}
-						</div>
-						<div>
-							<span className="text-text-dim">性能:</span> {tech.performance}
-						</div>
-						<div>
-							<span className="text-text-dim">エコシステム:</span>{" "}
-							{tech.ecosystem}
-						</div>
-						<div>
-							<span className="text-text-dim">コミュニティ:</span>{" "}
-							{tech.communitySize}
-						</div>
-					</div>
-
-					{tech.references?.length > 0 && (
-						<div className="flex flex-wrap gap-2 pt-1 border-t border-border">
-							{tech.references.map((r, j) => (
-								<SourceLink key={j} title={r.title} url={r.url} />
-							))}
-						</div>
-					)}
-				</div>
-			))}
-
-			{/* Architecture Notes */}
-			{content.architectureNotes?.length > 0 && (
-				<div className="bg-accent/5 border border-accent/20 rounded-lg p-3">
-					<h4 className="text-xs font-semibold text-accent mb-2">
-						アーキテクチャ上の考慮事項
-					</h4>
-					<ul className="space-y-1">
-						{content.architectureNotes.map((n, i) => (
-							<li
-								key={i}
-								className="text-xs text-text-muted flex items-start gap-1.5"
-							>
-								<span className="text-accent mt-0.5">▸</span>
-								{n}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
-
-			{/* Selection Criteria */}
-			{content.selectionCriteria?.length > 0 && (
-				<div>
-					<h4 className="text-xs font-semibold text-text mb-2">選定基準</h4>
-					<div className="space-y-1.5">
-						{content.selectionCriteria.map((sc, i) => (
-							<div
-								key={i}
-								className="p-2 bg-bg-surface2 border border-border rounded-lg"
-							>
-								<span className="text-xs font-medium text-text">
-									{sc.criterion}
-								</span>
-								<p className="text-[11px] text-text-muted mt-0.5">
-									{sc.description}
-								</p>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
-
-			{/* Verdict */}
-			{content.verdict && (
-				<div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
-					<h4 className="text-xs font-semibold text-green-400 mb-1">総括</h4>
-					<p className="text-xs text-text-muted leading-relaxed">
-						{content.verdict}
-					</p>
-				</div>
-			)}
-		</div>
-	);
-}
-
-// ── Research View ──────────────────────────────────────────────────
-
-function ResearchView({ content }: { content: ResearchTypeContent }) {
-	return (
-		<div className="space-y-4">
-			{/* Papers */}
-			{content.papers?.map((paper, i) => (
-				<div
-					key={i}
-					className="bg-bg-surface2 border border-border rounded-lg p-4 space-y-2"
-				>
-					<div className="flex items-start justify-between gap-2">
-						<h4 className="text-sm font-semibold text-text flex-1">
-							{paper.url ? (
-								<a
-									href={paper.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="hover:text-accent transition-colors"
-								>
-									{paper.title}
-									<ExternalLink size={10} className="inline ml-1 opacity-50" />
-								</a>
-							) : (
-								paper.title
-							)}
-						</h4>
-						<Badge color={stageColor(paper.stage)}>{paper.stage}</Badge>
-					</div>
-					<div className="text-[11px] text-text-dim space-x-2">
-						<span>{paper.authors}</span>
-						<span>·</span>
-						<span>{paper.institution}</span>
-						<span>·</span>
-						<span>{paper.venue}</span>
-						<span>·</span>
-						<span>{paper.publishedDate}</span>
-					</div>
-					<p className="text-xs text-text-muted leading-relaxed">
-						{paper.abstract}
-					</p>
-					<p className="text-[11px] text-accent/80 italic">
-						{paper.significance}
-					</p>
-				</div>
-			))}
-
-			{/* Key Findings */}
-			{content.keyFindings?.length > 0 && (
-				<div>
-					<h4 className="text-xs font-semibold text-text mb-2">主要な発見</h4>
-					<div className="space-y-1.5">
-						{content.keyFindings.map((f, i) => (
-							<div
-								key={i}
-								className="p-2.5 bg-bg-surface2 border border-border rounded-lg"
-							>
-								<div className="flex items-center gap-2 mb-1">
-									<span className="text-xs font-medium text-text">
-										{f.finding}
-									</span>
-									<Badge color={confidenceColor(f.confidence)}>
-										{f.confidence}
+			<div>
+				<SectionTitle>時系列の流れ</SectionTitle>
+				<div className="relative border-l-2 border-accent/20 pl-4 space-y-3">
+					{content.timeline.map((item, index) => (
+						<div key={`${item.date}-${item.headline}-${index}`} className="relative">
+							<div className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-bg-surface bg-accent" />
+							<Panel>
+								<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+									<span className="text-[11px] font-mono text-text-dim">{item.date}</span>
+									<Badge color={item.impact === "high" ? "red" : item.impact === "medium" ? "yellow" : "green"}>
+										{item.impact}
 									</Badge>
 								</div>
-								<p className="text-[11px] text-text-muted">{f.implications}</p>
-							</div>
-						))}
-					</div>
+								<h5 className="text-sm font-semibold text-text mb-1">{item.headline}</h5>
+								<p className="text-xs text-text-muted leading-relaxed">{item.detail}</p>
+							</Panel>
+						</div>
+					))}
 				</div>
-			)}
-
-			{/* Open Challenges & Future */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				{content.openChallenges?.length > 0 && (
-					<div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3">
-						<h4 className="text-xs font-semibold text-yellow-400 mb-2">
-							未解決課題
-						</h4>
-						<ul className="space-y-1">
-							{content.openChallenges.map((c, i) => (
-								<li
-									key={i}
-									className="text-xs text-text-muted flex items-start gap-1.5"
-								>
-									<span className="text-yellow-400 mt-0.5">?</span>
-									{c}
-								</li>
-							))}
-						</ul>
-					</div>
-				)}
-				{content.futureDirections?.length > 0 && (
-					<div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
-						<h4 className="text-xs font-semibold text-blue-400 mb-2">
-							今後の研究方向
-						</h4>
-						<ul className="space-y-1">
-							{content.futureDirections.map((d, i) => (
-								<li
-									key={i}
-									className="text-xs text-text-muted flex items-start gap-1.5"
-								>
-									<span className="text-blue-400 mt-0.5">→</span>
-									{d}
-								</li>
-							))}
-						</ul>
-					</div>
-				)}
 			</div>
 
-			{/* Key Researchers */}
-			{content.keyResearchers?.length > 0 && (
-				<div>
-					<h4 className="text-xs font-semibold text-text mb-2">主要研究者</h4>
-					<div className="flex flex-wrap gap-2">
-						{content.keyResearchers.map((r, i) => (
-							<div
-								key={i}
-								className="px-3 py-2 bg-bg-surface2 border border-border rounded-lg"
-							>
-								<span className="text-xs font-medium text-text">{r.name}</span>
-								<span className="text-[11px] text-text-dim ml-1.5">
-									{r.affiliation}
-								</span>
-								<p className="text-[10px] text-text-muted mt-0.5">
-									{r.contribution}
-								</p>
+			<div className="grid gap-3 sm:grid-cols-2">
+				<Panel>
+					<SectionTitle>変化の理由</SectionTitle>
+					<div className="space-y-2">
+						{content.drivers.map((driver, index) => (
+							<div key={`${driver.name}-${index}`}>
+								<div className="flex items-center gap-2 mb-1 flex-wrap">
+									<span className="text-xs font-semibold text-text">{driver.name}</span>
+									<Badge color={driver.impact === "high" ? "red" : driver.impact === "medium" ? "yellow" : "green"}>
+										{driver.impact}
+									</Badge>
+								</div>
+								<p className="text-[11px] text-text-muted leading-relaxed">{driver.detail}</p>
 							</div>
 						))}
 					</div>
-				</div>
-			)}
-		</div>
-	);
-}
+				</Panel>
 
-// ── Industry View ──────────────────────────────────────────────────
-
-function IndustryView({ content }: { content: IndustryTypeContent }) {
-	return (
-		<div className="space-y-4">
-			{/* Market Data KPIs */}
-			{content.marketData && (
-				<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-					<div className="bg-bg-surface2 border border-border rounded-lg p-3 text-center">
-						<p className="text-[10px] text-text-dim uppercase tracking-wider mb-1">
-							市場規模
-						</p>
-						<p className="text-sm font-bold text-text">
-							{content.marketData.marketSize}
-						</p>
-					</div>
-					<div className="bg-bg-surface2 border border-border rounded-lg p-3 text-center">
-						<p className="text-[10px] text-text-dim uppercase tracking-wider mb-1">
-							成長率
-						</p>
-						<p className="text-sm font-bold text-green-400">
-							{content.marketData.growthRate}
-						</p>
-					</div>
-					<div className="bg-bg-surface2 border border-border rounded-lg p-3 text-center">
-						<p className="text-[10px] text-text-dim uppercase tracking-wider mb-1">
-							将来予測
-						</p>
-						<p className="text-xs font-medium text-text-muted">
-							{content.marketData.forecast}
-						</p>
-					</div>
-				</div>
-			)}
-
-			{/* Players */}
-			{content.players?.map((player, i) => (
-				<div
-					key={i}
-					className="bg-bg-surface2 border border-border rounded-lg p-4 space-y-2"
-				>
-					<div className="flex items-center gap-2">
-						<h4 className="text-sm font-semibold text-text">{player.name}</h4>
-						<Badge color="blue">{player.role}</Badge>
-						{player.marketShare && (
-							<Badge color="gray">シェア: {player.marketShare}</Badge>
-						)}
-					</div>
-					<p className="text-xs text-text-muted">{player.strategy}</p>
-					{player.recentMoves?.length > 0 && (
-						<ul className="space-y-0.5">
-							{player.recentMoves.map((m, j) => (
-								<li
-									key={j}
-									className="text-xs text-text-muted flex items-start gap-1"
-								>
-									<span className="text-accent mt-0.5">•</span>
-									{m}
+				<Panel tone="green">
+					<SectionTitle>今後の見通し</SectionTitle>
+					<p className="text-xs text-text-muted leading-relaxed mb-2">短期: {content.outlook.shortTerm}</p>
+					<p className="text-xs text-text-muted leading-relaxed mb-2">中期: {content.outlook.midTerm}</p>
+					{content.outlook.watchpoints.length > 0 && (
+						<ul className="space-y-1 text-[11px] text-text-muted">
+							{content.outlook.watchpoints.map((watchpoint, index) => (
+								<li key={index} className="flex items-start gap-1.5">
+									<span className="text-green-400 mt-0.5">•</span>
+									{watchpoint}
 								</li>
 							))}
 						</ul>
 					)}
-				</div>
-			))}
-
-			{/* Competitive Landscape */}
-			{content.competitiveLandscape && (
-				<div className="bg-accent/5 border border-accent/20 rounded-lg p-3">
-					<h4 className="text-xs font-semibold text-accent mb-1">競争環境</h4>
-					<p className="text-xs text-text-muted leading-relaxed">
-						{content.competitiveLandscape}
-					</p>
-				</div>
-			)}
-
-			{/* Opportunities & Risks */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				{content.opportunities?.length > 0 && (
-					<div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
-						<h4 className="text-xs font-semibold text-green-400 mb-2">
-							ビジネス機会
-						</h4>
-						<ul className="space-y-1">
-							{content.opportunities.map((o, i) => (
-								<li
-									key={i}
-									className="text-xs text-text-muted flex items-start gap-1.5"
-								>
-									<span className="text-green-400 mt-0.5">↑</span>
-									{o}
-								</li>
-							))}
-						</ul>
-					</div>
-				)}
-				{content.risks?.length > 0 && (
-					<div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
-						<h4 className="text-xs font-semibold text-red-400 mb-2">
-							リスク要因
-						</h4>
-						<ul className="space-y-1">
-							{content.risks.map((r, i) => (
-								<li
-									key={i}
-									className="text-xs text-text-muted flex items-start gap-1.5"
-								>
-									<span className="text-red-400 mt-0.5">⚠</span>
-									{r}
-								</li>
-							))}
-						</ul>
-					</div>
-				)}
+				</Panel>
 			</div>
 
-			{/* Regulations */}
-			{content.regulations?.length > 0 && (
-				<div>
-					<h4 className="text-xs font-semibold text-text mb-2">規制動向</h4>
-					<div className="space-y-1">
-						{content.regulations.map((reg, i) => (
-							<div
-								key={i}
-								className="flex items-start gap-1.5 text-xs text-text-muted"
-							>
-								<span className="text-yellow-400 mt-0.5">§</span>
-								{reg}
+			<StructuredCommon
+				reason={content.recommendationReason}
+				evidenceLinks={content.evidenceLinks}
+				researchLogic={content.researchLogic}
+			/>
+		</div>
+	);
+}
+
+function TechResearchView({ content }: { content: TechResearchTypeContent }) {
+	return (
+		<div className="space-y-4">
+			<Panel tone="accent">
+				<SectionTitle>研究・技術の要点</SectionTitle>
+				<ul className="space-y-1.5 text-xs text-text-muted">
+					{content.keyPoints.map((point, index) => (
+						<li key={index} className="flex items-start gap-1.5">
+							<span className="text-accent mt-0.5">▸</span>
+							{point}
+						</li>
+					))}
+				</ul>
+			</Panel>
+
+			<div>
+				<SectionTitle>主要アプローチや理論</SectionTitle>
+				<div className="space-y-2">
+					{content.approaches.map((approach, index) => (
+						<Panel key={`${approach.name}-${index}`}>
+							<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+								<h5 className="text-sm font-semibold text-text">{approach.name}</h5>
+								<Badge color="blue">{approach.evidenceType}</Badge>
+							</div>
+							<p className="text-xs text-text-muted leading-relaxed mb-1.5">{approach.summary}</p>
+							<p className="text-[11px] text-text-dim">焦点: {approach.focus}</p>
+						</Panel>
+					))}
+				</div>
+			</div>
+
+			<div className="grid gap-3 sm:grid-cols-2">
+				<Panel tone="green">
+					<SectionTitle>分かっていること</SectionTitle>
+					<div className="space-y-2">
+						{content.knownFindings.map((finding, index) => (
+							<div key={`${finding.finding}-${index}`}>
+								<p className="text-xs font-semibold text-text">{finding.finding}</p>
+								<p className="text-[11px] text-text-muted mt-1">方法: {finding.method}</p>
+								<p className="text-[11px] text-text-muted mt-1">{finding.implication}</p>
 							</div>
 						))}
 					</div>
+				</Panel>
+
+				<Panel tone="yellow">
+					<SectionTitle>争点</SectionTitle>
+					<div className="space-y-2">
+						{content.controversies.map((controversy, index) => (
+							<div key={`${controversy.topic}-${index}`}>
+								<p className="text-xs font-semibold text-text">{controversy.topic}</p>
+								<p className="text-[11px] text-text-muted mt-1">A: {controversy.sideA}</p>
+								<p className="text-[11px] text-text-muted mt-1">B: {controversy.sideB}</p>
+								<p className="text-[11px] text-text-muted mt-1">{controversy.whyUnresolved}</p>
+							</div>
+						))}
+					</div>
+				</Panel>
+			</div>
+
+			<Panel tone="red">
+				<SectionTitle>まだ分かっていないこと</SectionTitle>
+				<div className="space-y-2">
+					{content.unknowns.map((unknown, index) => (
+						<div key={`${unknown.question}-${index}`}>
+							<p className="text-xs font-semibold text-text">{unknown.question}</p>
+							<p className="text-[11px] text-text-muted mt-1">{unknown.whyUnknown}</p>
+							<p className="text-[11px] text-text-muted mt-1">次の論点: {unknown.nextStep}</p>
+						</div>
+					))}
 				</div>
+			</Panel>
+
+			<StructuredCommon
+				reason={content.recommendationReason}
+				evidenceLinks={content.evidenceLinks}
+				researchLogic={content.researchLogic}
+			/>
+		</div>
+	);
+}
+
+function LegacyNotice({ children }: { children: ReactNode }) {
+	return (
+		<Panel tone="yellow">
+			<p className="text-[11px] text-text-muted">{children}</p>
+		</Panel>
+	);
+}
+
+function LegacyNewsView({ content }: { content: NewsTypeContent }) {
+	return (
+		<div className="space-y-4">
+			<LegacyNotice>
+				旧ニュース形式のデータです。次回更新で新しいニュースモードに移行されます。
+			</LegacyNotice>
+			{content.timeline.map((item, index) => (
+				<Panel key={`${item.date}-${index}`}>
+					<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+						<span className="text-[11px] font-mono text-text-dim">{item.date}</span>
+						<Badge color={item.impact === "high" ? "red" : item.impact === "medium" ? "yellow" : "green"}>
+							{item.impact}
+						</Badge>
+					</div>
+					<h5 className="text-sm font-semibold text-text mb-1">{item.headline}</h5>
+					<p className="text-xs text-text-muted leading-relaxed">{item.detail}</p>
+				</Panel>
+			))}
+			{content.outlook && (
+				<Panel tone="accent">
+					<p className="text-xs text-text-muted">{content.outlook}</p>
+				</Panel>
 			)}
 		</div>
 	);
 }
 
-// ── Router ─────────────────────────────────────────────────────────
+function LegacyBestPracticeView({ content }: { content: BestPracticeTypeContent }) {
+	return (
+		<div className="space-y-4">
+			<LegacyNotice>
+				旧ベストプラクティス形式のデータです。次回更新で新しいベストプラクティスモードに移行されます。
+			</LegacyNotice>
+			{content.methods.map((method, index) => (
+				<Panel key={`${method.name}-${index}`}>
+					<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+						<h5 className="text-sm font-semibold text-text">{method.name}</h5>
+						<Badge color="gray">{method.category}</Badge>
+					</div>
+					<p className="text-xs text-text-muted leading-relaxed">{method.description}</p>
+				</Panel>
+			))}
+		</div>
+	);
+}
+
+function LegacyTechnologyView({ content }: { content: TechnologyTypeContent }) {
+	return (
+		<div className="space-y-4">
+			<LegacyNotice>
+				旧技術比較形式のデータです。次回更新で技術・研究モードに移行されます。
+			</LegacyNotice>
+			{content.comparisons.map((comparison, index) => (
+				<Panel key={`${comparison.name}-${index}`}>
+					<div className="flex items-center gap-2 mb-1.5 flex-wrap">
+						<h5 className="text-sm font-semibold text-text">{comparison.name}</h5>
+						{comparison.version && <Badge color="gray">{comparison.version}</Badge>}
+					</div>
+					<p className="text-[11px] text-text-muted">最適用途: {comparison.bestFor}</p>
+					<p className="text-[11px] text-text-muted mt-1">性能: {comparison.performance}</p>
+				</Panel>
+			))}
+		</div>
+	);
+}
+
+function LegacyResearchView({ content }: { content: ResearchTypeContent }) {
+	return (
+		<div className="space-y-4">
+			<LegacyNotice>
+				旧リサーチ形式のデータです。次回更新で技術・研究モードに移行されます。
+			</LegacyNotice>
+			{content.papers.map((paper, index) => (
+				<Panel key={`${paper.title}-${index}`}>
+					<h5 className="text-sm font-semibold text-text">{paper.title}</h5>
+					<p className="text-[11px] text-text-muted mt-1">
+						{paper.authors} / {paper.venue}
+					</p>
+					<p className="text-xs text-text-muted leading-relaxed mt-2">{paper.abstract}</p>
+				</Panel>
+			))}
+		</div>
+	);
+}
+
+function LegacyIndustryView({ content }: { content: IndustryTypeContent }) {
+	return (
+		<div className="space-y-4">
+			<LegacyNotice>
+				旧業界動向形式のデータです。次回更新でニュースモードに移行されます。
+			</LegacyNotice>
+			<Panel>
+				<p className="text-[11px] text-text-muted">市場規模: {content.marketData.marketSize}</p>
+				<p className="text-[11px] text-text-muted mt-1">成長率: {content.marketData.growthRate}</p>
+				<p className="text-[11px] text-text-muted mt-1">将来予測: {content.marketData.forecast}</p>
+			</Panel>
+		</div>
+	);
+}
+
+function isStructuredBestPracticeContent(
+	content: TopicTypeContent,
+): content is StructuredBestPracticeTypeContent {
+	return content.type === "bestPractice" && "schemaVersion" in content;
+}
+
+function isStructuredNewsContent(
+	content: TopicTypeContent,
+): content is StructuredNewsTypeContent {
+	return content.type === "news" && "schemaVersion" in content;
+}
 
 export default function TypeContentView({
 	content,
@@ -683,16 +537,26 @@ export default function TypeContentView({
 	content: TopicTypeContent;
 }) {
 	switch (content.type) {
-		case "news":
-			return <NewsView content={content} />;
 		case "bestPractice":
-			return <BestPracticeView content={content} />;
+			return isStructuredBestPracticeContent(content) ? (
+				<StructuredBestPracticeView content={content} />
+			) : (
+				<LegacyBestPracticeView content={content} />
+			);
+		case "news":
+			return isStructuredNewsContent(content) ? (
+				<StructuredNewsView content={content} />
+			) : (
+				<LegacyNewsView content={content} />
+			);
+		case "techResearch":
+			return <TechResearchView content={content} />;
 		case "technology":
-			return <TechnologyView content={content} />;
+			return <LegacyTechnologyView content={content} />;
 		case "research":
-			return <ResearchView content={content} />;
+			return <LegacyResearchView content={content} />;
 		case "industry":
-			return <IndustryView content={content} />;
+			return <LegacyIndustryView content={content} />;
 		default:
 			return (
 				<p className="text-xs text-text-dim text-center py-4">

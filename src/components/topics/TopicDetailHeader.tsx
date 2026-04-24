@@ -11,6 +11,7 @@ import {
 	RESEARCH_DEPTH_CONFIG,
 	TOPIC_TYPE_CONFIG,
 } from "../../utils/constants";
+import { normalizeTopicType } from "../../utils/topicModes";
 import Tooltip from "../common/Tooltip";
 
 interface Props {
@@ -54,7 +55,7 @@ export default function TopicDetailHeader({
 	onRefresh,
 	onOpenChangeModal,
 }: Props) {
-	const topicType = topic.topicType || "news";
+	const topicType = normalizeTopicType(topic.topicType);
 	const researchDepth = topic.researchDepth || 3;
 
 	return (

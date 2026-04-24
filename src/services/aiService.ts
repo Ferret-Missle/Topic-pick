@@ -5,6 +5,7 @@ import type {
 	ApiKeyEntry,
 	ChatMessage,
 	ResearchDepth,
+	SelectableTopicType,
 	TopicType,
 	TrialUsageStatus,
 	UserApiKeyState,
@@ -14,6 +15,7 @@ import {
 	DEFAULT_MODEL_BY_PROVIDER,
 	TRIAL_PROVIDER,
 } from "../utils/constants";
+import { normalizeTopicType } from "../utils/topicModes";
 import { calculateUsageTokens, calculateUsageUsd } from "../utils/usageCost";
 import {
 	getUserApiKeyState,
@@ -80,6 +82,7 @@ export interface FetchTopicNewsUsage {
 
 export interface FetchTopicNewsResult {
 	data: AINewsResponse;
+	topicType: SelectableTopicType;
 	provider: AIProvider;
 	model: string;
 	source: FetchSource;
@@ -151,15 +154,13 @@ const DEPTH_PARAMS: Record<ResearchDepth, DepthParams> = {
 	},
 };
 
-const TYPE_USER_PROMPTS: Record<TopicType, string> = {
-	news: "上記のトピックについて最新ニュースを時系列で検索・整理してください。",
+const TYPE_USER_PROMPTS: Record<SelectableTopicType, string> = {
 	bestPractice:
-		"上記のトピックについて、最新のベストプラクティスを体系的に調査・整理してください。実際に導入・運用できるレベルの具体性を持たせてください。",
-	technology:
-		"上記のトピックについて、主要な技術・ツールを比較・分析してください。",
-	research:
-		"上記のトピックについて、最新の研究動向を学術的観点から調査してください。",
-	industry: "上記のトピックについて、業界動向を分析してください。",
+		"上記のトピックについて、今すぐ実務に使える推奨パターン、避けるべきアンチパターン、実績は少ないが注目されているパターンを整理してください。",
+	news:
+		"上記のトピックについて、重要な転換点、時系列の流れ、変化の理由、今後の見通しが分かるように整理してください。",
+	techResearch:
+		"上記のトピックについて、技術動向と研究知見を整理し、主要アプローチ、分かっていること、争点、まだ分かっていないことをまとめてください。",
 };
 
 function safeLocalStorageGet(key: string): string {
@@ -759,133 +760,125 @@ function commonSchemaBlock(dp: DepthParams, depth: ResearchDepth): string {
 
 function newsTypeSchema(dp: DepthParams): string {
 	return `  "typeContent": {
-    "type": "news",
-    "timeline": [
-      {"date":"YYYY-MM-DD","headline":"イベント見出し","detail":"背景と影響の詳細（${dp.detailLevel}）","impact":"high|medium|low","sources":[{"title":"出典","url":"URL"}]}
-    ],
-    "outlook": "今後の見通し",
-    "keyPlayers": ["主要プレイヤー"]
-  }
+		"schemaVersion": 2,
+		"type": "news",
+		"recommendationReason": "このモードが適している理由",
+		"evidenceLinks": [
+			{"title":"根拠タイトル","url":"URL","sourceType":"news","relevance":"どの結論を支えるか"}
+		],
+		"researchLogic": {
+			"searchApproach": "どう調べたかの要約",
+			"sourcePriority": ["公式ドキュメント","論文","一次情報","ニュース","ブログ","コミュニティ"],
+			"selectionCriteria": ["何を重視して情報を選んだか"],
+			"limitations": ["調査上の制約"]
+		},
+		"pivotalPoints": [
+			{"date":"YYYY-MM-DD","title":"転換点の見出し","whyItMatters":"なぜ重要か","impact":"high|medium|low"}
+		],
+		"timeline": [
+			{"date":"YYYY-MM-DD","headline":"イベント見出し","detail":"背景と影響の詳細（${dp.detailLevel}）","impact":"high|medium|low","sources":[{"title":"出典","url":"URL"}]}
+		],
+		"drivers": [
+			{"name":"変化要因","detail":"どう影響したか","impact":"high|medium|low"}
+		],
+		"outlook": {
+			"shortTerm": "短期見通し",
+			"midTerm": "中期見通し",
+			"watchpoints": ["今後の注視点"]
+		}
+	}
 
-timelineは${dp.typeItemCount}件含めてください。直近のイベントを日付降順で並べてください。`;
+pivotalPointsとtimelineは${dp.typeItemCount}件程度含めてください。直近のイベントを日付降順で並べてください。`;
 }
 
 function bestPracticeTypeSchema(dp: DepthParams): string {
 	return `  "typeContent": {
-    "type": "bestPractice",
-    "methods": [
-      {
-        "name": "手法名",
-        "category": "カテゴリ（開発プロセス/テスト/設計/運用等）",
-        "description": "手法の説明（200字程度）",
-        "steps": ["具体的手順1","手順2","手順3"],
-        "pros": ["メリット1","メリット2"],
-        "cons": ["デメリット1"],
-        "adoptionTips": "導入のコツ",
-        "maturityLevel": "experimental|emerging|established",
-        "references": [{"title":"参考資料","url":"URL"}]
-      }
-    ],
-    "keyInsights": ["重要な考察1","考察2"],
-    "actionItems": [
-      {"action":"今すぐ取り入れられること","effort":"low|medium|high","impact":"low|medium|high"}
-    ]
-  }
+		"schemaVersion": 2,
+		"type": "bestPractice",
+		"recommendationReason": "このモードが適している理由",
+		"evidenceLinks": [
+			{"title":"根拠タイトル","url":"URL","sourceType":"official","relevance":"どの結論を支えるか"}
+		],
+		"researchLogic": {
+			"searchApproach": "どう調べたかの要約",
+			"sourcePriority": ["公式ドキュメント","論文","一次情報","ニュース","ブログ","コミュニティ"],
+			"selectionCriteria": ["何を重視して情報を選んだか"],
+			"limitations": ["調査上の制約"]
+		},
+		"recommendedPatterns": [
+			{
+				"name": "推奨パターン名",
+				"summary": "何をするパターンか",
+				"whyRecommended": "なぜ推奨か",
+				"fitFor": ["向いている状況1"],
+				"cautions": ["注意点1"]
+			}
+		],
+		"antiPatterns": [
+			{"name":"アンチパターン名","summary":"何が問題か","risk":"どんな失敗が起きるか","betterOption":"代替案"}
+		],
+		"emergingPatterns": [
+			{"name":"注目パターン名","summary":"何が新しいか","whyWatch":"なぜ注目か","uncertainty":"まだ不確実な点"}
+		]
+	}
 
-methodsは${dp.typeItemCount}件含めてください。各手法は${dp.detailLevel}記述してください。
-実際に読者がその手法を導入・運用できるレベルの具体性を持たせてください。`;
+recommendedPatterns、antiPatterns、emergingPatternsはそれぞれ${dp.typeItemCount}件以下で、重複のない内容にしてください。`;
 }
 
-function technologyTypeSchema(dp: DepthParams): string {
+function techResearchTypeSchema(dp: DepthParams): string {
 	return `  "typeContent": {
-    "type": "technology",
-    "comparisons": [
-      {
-        "name": "技術名",
-        "version": "バージョン",
-        "category": "カテゴリ",
-        "strengths": ["強み1","強み2"],
-        "weaknesses": ["弱み1"],
-        "bestFor": "最適なユースケース",
-        "performance": "パフォーマンス特性",
-        "ecosystem": "エコシステム状況",
-        "learningCurve": "easy|moderate|steep",
-        "communitySize": "small|medium|large",
-        "references": [{"title":"参考","url":"URL"}]
-      }
-    ],
-    "architectureNotes": ["アーキテクチャ上の考慮事項"],
-    "selectionCriteria": [{"criterion":"選定基準","description":"説明"}],
-    "verdict": "総括・推奨"
-  }
+		"schemaVersion": 2,
+		"type": "techResearch",
+		"recommendationReason": "このモードが適している理由",
+		"evidenceLinks": [
+			{"title":"根拠タイトル","url":"URL","sourceType":"paper","relevance":"どの結論を支えるか"}
+		],
+		"researchLogic": {
+			"searchApproach": "どう調べたかの要約",
+			"sourcePriority": ["公式ドキュメント","論文","一次情報","ニュース","ブログ","コミュニティ"],
+			"selectionCriteria": ["何を重視して情報を選んだか"],
+			"limitations": ["調査上の制約"]
+		},
+		"keyPoints": ["研究・技術の要点1"],
+		"approaches": [
+			{
+				"name": "アプローチ名",
+				"summary": "どういう考え方か",
+				"focus": "何を解こうとしているか",
+				"evidenceType": "theory|experiment|product"
+			}
+		],
+		"knownFindings": [
+			{"finding":"分かっていること","method":"どうやって分かったか","implication":"何を意味するか"}
+		],
+		"controversies": [
+			{
+				"topic": "争点",
+				"sideA": "立場A",
+				"sideB": "立場B",
+				"whyUnresolved": "なぜ割れているか"
+			}
+		],
+		"unknowns": [
+			{"question":"未解明事項","whyUnknown":"なぜ未解明か","nextStep":"次に注視すべきこと"}
+		]
+	}
 
-comparisonsは${dp.typeItemCount}件含めてください。${dp.detailLevel}`;
+approaches、knownFindings、controversies、unknownsはそれぞれ${dp.typeItemCount}件以下に整理してください。${dp.detailLevel}`;
 }
 
-function researchTypeSchema(dp: DepthParams): string {
-	return `  "typeContent": {
-    "type": "research",
-    "papers": [
-      {
-        "title": "論文タイトル",
-        "authors": "著者",
-        "institution": "研究機関",
-        "publishedDate": "YYYY-MM",
-        "venue": "掲載先（Nature/arXiv等）",
-        "abstract": "要約（200字程度）",
-        "significance": "重要性の説明",
-        "stage": "basic|applied|commercializing",
-        "url": "URL"
-      }
-    ],
-    "keyFindings": [
-      {"finding":"発見","implications":"意味するところ","confidence":"preliminary|confirmed|consensus"}
-    ],
-    "openChallenges": ["未解決課題1"],
-    "futureDirections": ["今後の研究方向1"],
-    "keyResearchers": [{"name":"研究者名","affiliation":"所属","contribution":"貢献内容"}]
-  }
-
-papersは${dp.typeItemCount}件含めてください。${dp.detailLevel}`;
-}
-
-function industryTypeSchema(dp: DepthParams): string {
-	return `  "typeContent": {
-    "type": "industry",
-    "marketData": {
-      "marketSize": "市場規模",
-      "growthRate": "成長率",
-      "forecast": "将来予測"
-    },
-    "players": [
-      {
-        "name": "企業名",
-        "role": "ポジション（リーダー/チャレンジャー/新規参入等）",
-        "recentMoves": ["最近の動き1"],
-        "strategy": "戦略の要約",
-        "marketShare": "シェア（わかれば）"
-      }
-    ],
-    "competitiveLandscape": "競争環境の分析",
-    "opportunities": ["ビジネス機会1"],
-    "risks": ["リスク要因1"],
-    "regulations": ["規制動向1"]
-  }
-
-playersは${dp.typeItemCount}件含めてください。${dp.detailLevel}`;
-}
-
-const TYPE_SCHEMA_BUILDERS: Record<TopicType, (dp: DepthParams) => string> = {
-	news: newsTypeSchema,
+const TYPE_SCHEMA_BUILDERS: Record<
+	SelectableTopicType,
+	(dp: DepthParams) => string
+> = {
 	bestPractice: bestPracticeTypeSchema,
-	technology: technologyTypeSchema,
-	research: researchTypeSchema,
-	industry: industryTypeSchema,
+	news: newsTypeSchema,
+	techResearch: techResearchTypeSchema,
 };
 
 function buildSystemPrompt(topicType: TopicType, depth: ResearchDepth): string {
 	const dp = DEPTH_PARAMS[depth];
-	const typeSchema = TYPE_SCHEMA_BUILDERS[topicType](dp);
+	const typeSchema = TYPE_SCHEMA_BUILDERS[normalizeTopicType(topicType)](dp);
 
 	return `あなたは情報分析アシスタントです。
 与えられたトピックについてWeb検索で最新情報を収集し、以下のJSON形式のみで返答してください（マークダウンや説明文は不要、JSONのみ）。
@@ -1029,11 +1022,12 @@ async function fetchTopicNewsWithAnthropic(
 	researchDepth: ResearchDepth,
 ): Promise<FetchTopicNewsResult> {
 	const dp = DEPTH_PARAMS[researchDepth];
+	const normalizedTopicType = normalizeTopicType(topicType);
 	const requestModel = resolveProviderModel(entry.provider, entry.model);
 	const requestEntry =
 		requestModel === entry.model ? entry : { ...entry, model: requestModel };
 	const systemPrompt = buildSystemPrompt(topicType, researchDepth);
-	const typePrompt = TYPE_USER_PROMPTS[topicType];
+	const typePrompt = TYPE_USER_PROMPTS[normalizedTopicType];
 	const userPrompt = `トピック名: ${topicName}\n説明: ${topicDescription || "なし"}\n\n${typePrompt}`;
 
 	const response = await fetch(ANTHROPIC_API_URL, {
@@ -1069,6 +1063,7 @@ async function fetchTopicNewsWithAnthropic(
 
 	return {
 		data: normalizeAINewsResponse(repairAndParseJSON(jsonMatch[0])),
+		topicType: normalizedTopicType,
 		provider: entry.provider,
 		model: requestModel,
 		source: "user-key",
@@ -1086,8 +1081,9 @@ async function fetchTopicNewsWithGemini(
 	researchDepth: ResearchDepth,
 ): Promise<FetchTopicNewsResult> {
 	const dp = DEPTH_PARAMS[researchDepth];
+	const normalizedTopicType = normalizeTopicType(topicType);
 	const systemPrompt = buildSystemPrompt(topicType, researchDepth);
-	const typePrompt = TYPE_USER_PROMPTS[topicType];
+	const typePrompt = TYPE_USER_PROMPTS[normalizedTopicType];
 	const userPrompt = `トピック名: ${topicName}\n説明: ${topicDescription || "なし"}\n\n${typePrompt}`;
 
 	let lastError: Error | null = null;
@@ -1167,6 +1163,7 @@ async function fetchTopicNewsWithGemini(
 
 			return {
 				data: parsed,
+				topicType: normalizedTopicType,
 				provider: entry.provider,
 				model: entry.model,
 				source: "user-key",
@@ -1205,6 +1202,7 @@ async function fetchTopicNewsWithTrial(
 	topicType: TopicType,
 	researchDepth: ResearchDepth,
 ): Promise<FetchTopicNewsResult> {
+	const normalizedTopicType = normalizeTopicType(topicType);
 	const idToken = await getCurrentIdTokenOrThrow();
 	let response: Response;
 	try {
@@ -1217,7 +1215,7 @@ async function fetchTopicNewsWithTrial(
 			body: JSON.stringify({
 				topicName,
 				topicDescription,
-				topicType,
+				topicType: normalizedTopicType,
 				researchDepth,
 			}),
 		});
@@ -1280,6 +1278,7 @@ async function fetchTopicNewsWithTrial(
 
 	return {
 		data: json.data,
+		topicType: normalizedTopicType,
 		provider: TRIAL_PROVIDER,
 		model,
 		source: "trial",
@@ -1297,13 +1296,19 @@ function buildChatSystemPrompt(
 現在登録されているトピック: ${currentTopics.join("、") || "なし"}
 
 ユーザーが何に関心があるかをヒアリングし、追加するトピックを提案してください。
-最終的に「トピック名: ○○」という形式で提案をまとめてください。
+最終的に次の2行で提案をまとめてください。
+トピック名: ○○
+説明: ○○
+説明は、そのトピックで何を知りたいかが分かる2〜3文にしてください。
 日本語で回答してください。`
 		: `あなたはトピック変更を支援するアシスタントです。
 現在登録されているトピック: ${currentTopics.join("、") || "なし"}
 
 閲覧頻度が低いトピックの代替として、より関心を引きそうなトピックを提案してください。
-最終的に「新しいトピック名: ○○」という形式で提案をまとめてください。
+最終的に次の2行で提案をまとめてください。
+新しいトピック名: ○○
+説明: ○○
+説明は、そのトピックで何を知りたいかが分かる2〜3文にしてください。
 日本語で回答してください。`;
 }
 

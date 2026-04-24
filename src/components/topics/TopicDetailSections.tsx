@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import type { Topic } from "../../types";
 import { TOPIC_TYPE_CONFIG } from "../../utils/constants";
+import { normalizeTopicType } from "../../utils/topicModes";
 import CollapsibleSection from "../common/CollapsibleSection";
 import RawItemsList from "./RawItemsList";
 import SummaryCard from "./SummaryCard";
@@ -17,7 +18,7 @@ export default function TopicDetailSections({ topic }: Props) {
 		.map((item) => item.title + item.snippet)
 		.join("");
 	const trendContent = JSON.stringify(topic.trendData || {});
-	const topicType = topic.topicType || "news";
+	const topicType = normalizeTopicType(topic.topicType);
 
 	return (
 		<div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 min-h-0">
@@ -25,11 +26,11 @@ export default function TopicDetailSections({ topic }: Props) {
 
 			{topic.typeContent && (
 				<CollapsibleSection
-					title={`${TOPIC_TYPE_CONFIG[topicType].icon} ${TOPIC_TYPE_CONFIG[topicType].label}詳細`}
+					title={`${TOPIC_TYPE_CONFIG[topicType].icon} ${TOPIC_TYPE_CONFIG[topicType].label}`}
 					content={JSON.stringify(topic.typeContent)}
 					defaultOpen={true}
 					accent="blue"
-					badge={topicType}
+					badge="mode"
 				>
 					<TypeContentView content={topic.typeContent} />
 				</CollapsibleSection>

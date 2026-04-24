@@ -1,8 +1,9 @@
-import type { ResearchDepth, TopicType } from "../../types";
+import type { ResearchDepth } from "../../types";
 import {
 	RESEARCH_DEPTH_CONFIG,
 	TOPIC_TYPE_CONFIG,
 } from "../../utils/constants";
+import { SELECTABLE_TOPIC_TYPES } from "../../utils/topicModes";
 import Tooltip from "../common/Tooltip";
 import type { TopicSettingsControlProps } from "./useTopicSettingsForm";
 
@@ -68,15 +69,12 @@ export default function TopicSettingsEditor({
 
 			<div>
 				<label className="block text-[11px] font-semibold text-text-muted mb-1 uppercase tracking-wider">
-					トピックタイプ
+					調査モード
 				</label>
 				<div className="flex flex-wrap items-center gap-1.5">
-					{(
-						Object.entries(TOPIC_TYPE_CONFIG) as [
-							TopicType,
-							(typeof TOPIC_TYPE_CONFIG)[TopicType],
-						][]
-					).map(([key, cfg]) => (
+					{SELECTABLE_TOPIC_TYPES.map((key) => {
+						const cfg = TOPIC_TYPE_CONFIG[key];
+						return (
 						<Tooltip key={key} position="bottom" content={cfg.description}>
 							<button
 								type="button"
@@ -91,7 +89,8 @@ export default function TopicSettingsEditor({
 								<span className="font-medium">{cfg.label}</span>
 							</button>
 						</Tooltip>
-					))}
+						);
+					})}
 				</div>
 			</div>
 

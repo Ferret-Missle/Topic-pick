@@ -19,6 +19,7 @@ export default function ChatPanel({ mode, onClose, onConfirm }: Props) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [suggestedTopic, setSuggestedTopic] = useState<string | null>(null)
+  const [suggestedDescription, setSuggestedDescription] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const currentTopicNames = topics.map(t => t.name)
@@ -55,6 +56,20 @@ export default function ChatPanel({ mode, onClose, onConfirm }: Props) {
     return null
   }
 
+  function extractDescription(text: string): string | null {
+    const patterns = [
+      /説明[：:]\s*([\s\S]+?)(?:\n[A-Za-z一-龠ぁ-んァ-ヶー]+[：:]|$)/,
+      /トピック説明[：:]\s*([\s\S]+?)(?:\n[A-Za-z一-龠ぁ-んァ-ヶー]+[：:]|$)/,
+    ]
+    for (const pattern of patterns) {
+      const match = text.match(pattern)
+      if (match?.[1]) {
+        return match[1].trim()
+      }
+    }
+    return null
+  }
+
   async function sendMessage() {
     if (!input.trim() || loading) return
     if (!appUser) { toast.error('ログインが必要です'); return }
@@ -81,7 +96,11 @@ export default function ChatPanel({ mode, onClose, onConfirm }: Props) {
       setMessages(m => [...m, assistantMsg])
 
       const suggestion = extractSuggestion(reply)
-      if (suggestion) setSuggestedTopic(suggestion)
+      const descriptionSuggestion = extractDescription(reply)
+      if (suggestion) {
+        setSuggestedTopic(suggestion)
+        setSuggestedDescription(descriptionSuggestion)
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'エラーが発生しました')
     } finally {
@@ -102,7 +121,7 @@ export default function ChatPanel({ mode, onClose, onConfirm }: Props) {
           </p>
           <p className="text-[11px] text-text-muted">AIアシスタントに相談</p>
         </div>
-        <button onClick={onClose} className="ml-auto text-text-muted hover:text-text transition-colors">
+        <button title="閉じる" onClick={onClose} className="ml-auto text-text-muted hover:text-text transition-colors">
           <X size={16} />
         </button>
       </div>
@@ -132,9 +151,9 @@ export default function ChatPanel({ mode, onClose, onConfirm }: Props) {
             </div>
             <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-bg-surface3 border border-border">
               <div className="flex gap-1.5 items-center h-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" />
+                <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" />
+                <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce" />
               </div>
             </div>
           </div>
@@ -147,9 +166,20 @@ export default function ChatPanel({ mode, onClose, onConfirm }: Props) {
         <div className="mx-4 mb-3 p-3 bg-daily/10 border border-daily/25 rounded-xl animate-fade-in">
           <p className="text-xs text-text-muted mb-1.5">提案されたトピック</p>
           <p className="text-sm font-semibold text-daily mb-2">「{suggestedTopic}」</p>
+          {suggestedDescription && (
+            <p className="text-xs text-text-muted mb-2 leading-relaxed whitespace-pre-wrap">
+              {suggestedDescription}
+            </p>
+          )}
           <div className="flex gap-2">
             <button
-              onClick={() => onConfirm(suggestedTopic, '')}
+              onClick={() => {
+                if (!suggestedDescription) {
+                  toast.error('説明文を取得できなかったため、もう少し詳しく相談してください')
+                  return
+                }
+                onConfirm(suggestedTopic, suggestedDescription)
+              }}
               className="flex-1 py-1.5 bg-daily/15 hover:bg-daily/25 border border-daily/30 text-daily text-xs font-semibold rounded-lg transition-all"
             >
               このトピックを追加
@@ -177,6 +207,7 @@ export default function ChatPanel({ mode, onClose, onConfirm }: Props) {
             className="flex-1 px-3.5 py-2.5 bg-bg-surface3 border border-border rounded-xl text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent/50 transition-colors disabled:opacity-50"
           />
           <button
+            title="メッセージを送信"
             onClick={sendMessage}
             disabled={loading || !input.trim()}
             className="px-3 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-all active:scale-95"

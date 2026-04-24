@@ -3,6 +3,8 @@ import { ja } from "date-fns/locale";
 import { Clock, Flame, RefreshCw, Zap } from "lucide-react";
 import { useTopics } from "../../contexts/TopicsContext";
 import type { Topic } from "../../types";
+import { TOPIC_TYPE_CONFIG } from "../../utils/constants";
+import { normalizeTopicType } from "../../utils/topicModes";
 
 interface Props {
 	topic: Topic;
@@ -26,6 +28,8 @@ export default function TopicItem({
 		: "未更新";
 
 	const buzzLevel = topic.trendData?.buzzLevel ?? 0;
+	const topicType = normalizeTopicType(topic.topicType);
+	const topicMode = TOPIC_TYPE_CONFIG[topicType];
 
 	return (
 		<button
@@ -38,9 +42,15 @@ export default function TopicItem({
 		>
 			{/* Topic name row */}
 			<div className="flex items-start gap-2 mb-1.5">
-				<span className="flex-1 text-sm font-semibold text-text leading-snug line-clamp-2 pr-1">
-					{topic.name}
-				</span>
+				<div className="flex-1 pr-1 min-w-0">
+					<span className="text-sm font-semibold text-text leading-snug line-clamp-2 block">
+						{topic.name}
+					</span>
+					<span className="mt-1 inline-flex items-center gap-1 rounded-full border border-border bg-bg-surface3 px-2 py-0.5 text-[10px] text-text-dim">
+						<span>{topicMode.icon}</span>
+						{topicMode.label}
+					</span>
+				</div>
 
 				{/* Frequency badge */}
 				{(topic.updateFrequency === "daily" || topic.isDaily) && (

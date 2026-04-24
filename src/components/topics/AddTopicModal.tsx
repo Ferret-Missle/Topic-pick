@@ -1,7 +1,12 @@
 import { MessageCircle, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useTopics } from "../../contexts/TopicsContext";
+import {
+	buildTopicTypeCandidates,
+	needsTopicTypeClarification,
+	TOPIC_TYPE_CLARIFICATION_OPTIONS,
+} from "../../utils/topicModes";
 import ChatPanel from "../chat/ChatPanel";
 import AddTopicCostSummary from "./AddTopicCostSummary";
 import AddTopicForm from "./AddTopicForm";
@@ -19,6 +24,9 @@ export default function AddTopicModal({ onClose }: Props) {
 	const [view, setView] = useState<View>("form");
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+	const [clarificationAnswer, setClarificationAnswer] =
+		useState<typeof topicType | null>(null);
+	const [topicTypeTouched, setTopicTypeTouched] = useState(false);
 	const [isDaily] = useState(false);
 	const {
 		frequency,
@@ -35,6 +43,22 @@ export default function AddTopicModal({ onClose }: Props) {
 		frequency: isDaily ? "daily" : "weekly",
 	});
 	const [loading, setLoading] = useState(false);
+
+	const topicTypeCandidates = useMemo(
+		() => buildTopicTypeCandidates(name, description, clarificationAnswer),
+		[name, description, clarificationAnswer],
+	);
+	const shouldClarify =
+		description.trim().length > 0 &&
+		clarificationAnswer === null &&
+		needsTopicTypeClarification(topicTypeCandidates);
+
+	useEffect(() => {
+		if (!description.trim() || topicTypeTouched) {
+			return;
+		}
+		setTopicType(topicTypeCandidates[0].type);
+	}, [description, topicTypeCandidates, topicTypeTouched, setTopicType]);
 
 	async function submitTopic(topicName: string, topicDescription: string) {
 		if (!canAddTopic) {
@@ -70,6 +94,10 @@ export default function AddTopicModal({ onClose }: Props) {
 			toast.error("トピック名を入力してください");
 			return;
 		}
+		if (!description.trim()) {
+			toast.error("説明を入力してください");
+			return;
+		}
 		await submitTopic(name.trim(), description.trim());
 	}
 
@@ -78,6 +106,23 @@ export default function AddTopicModal({ onClose }: Props) {
 	}
 
 	const dailyAllowed = canSetDaily();
+
+	function handleTopicTypeChange(nextTopicType: typeof topicType) {
+		setTopicTypeTouched(true);
+		setTopicType(nextTopicType);
+	}
+
+	function handleNameChange(value: string) {
+		setTopicTypeTouched(false);
+		setClarificationAnswer(null);
+		setName(value);
+	}
+
+	function handleDescriptionChange(value: string) {
+		setTopicTypeTouched(false);
+		setClarificationAnswer(null);
+		setDescription(value);
+	}
 
 	return (
 		<div
@@ -113,12 +158,16 @@ export default function AddTopicModal({ onClose }: Props) {
 							topicType={topicType}
 							researchDepth={researchDepth}
 							dailyAllowed={dailyAllowed}
-							onNameChange={setName}
-							onDescriptionChange={setDescription}
+							topicTypeCandidates={topicTypeCandidates}
+							needsTopicTypeClarification={shouldClarify}
+							clarificationOptions={TOPIC_TYPE_CLARIFICATION_OPTIONS}
+							onClarifyTopicType={setClarificationAnswer}
+							onNameChange={handleNameChange}
+							onDescriptionChange={handleDescriptionChange}
 							onFrequencyChange={setFrequency}
 							onCustomDaysChange={setCustomDays}
 							onDailyTimeChange={setDailyTime}
-							onTopicTypeChange={setTopicType}
+							onTopicTypeChange={handleTopicTypeChange}
 							onResearchDepthChange={setResearchDepth}
 							onSubmit={handleAdd}
 						/>
@@ -132,7 +181,7 @@ export default function AddTopicModal({ onClose }: Props) {
 						{/* Actions */}
 						<button
 							onClick={handleAdd}
-							disabled={loading || !name.trim() || !canAddTopic}
+							disabled={loading || !name.trim() || !description.trim() || !canAddTopic}
 							className="w-full py-3 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] mb-3"
 						>
 							<Plus size={16} />

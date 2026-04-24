@@ -4,12 +4,14 @@ import type { Timestamp } from "firebase/firestore";
 export type SubscriptionTier = "anonymous" | "free" | "premium";
 
 // ── Topic Type & Research Depth ──────────────────────────────────
-export type TopicType =
-	| "news"
+export type SelectableTopicType =
 	| "bestPractice"
-	| "technology"
-	| "research"
-	| "industry";
+	| "news"
+	| "techResearch";
+
+export type LegacyTopicType = "technology" | "research" | "industry";
+
+export type TopicType = SelectableTopicType | LegacyTopicType;
 
 export type ResearchDepth = 1 | 2 | 3 | 4 | 5;
 
@@ -69,6 +71,28 @@ export interface ViewRecord {
 }
 
 // ── Type-specific content ────────────────────────────────────────
+export type EvidenceSourceType =
+	| "official"
+	| "paper"
+	| "primary"
+	| "news"
+	| "blog"
+	| "community";
+
+export interface EvidenceLink {
+	title: string;
+	url?: string;
+	sourceType: EvidenceSourceType;
+	relevance: string;
+}
+
+export interface ResearchLogic {
+	searchApproach: string;
+	sourcePriority: string[];
+	selectionCriteria: string[];
+	limitations?: string[];
+}
+
 export interface NewsTimelineItem {
 	date: string;
 	headline: string;
@@ -82,6 +106,35 @@ export interface NewsTypeContent {
 	timeline: NewsTimelineItem[];
 	outlook: string;
 	keyPlayers: string[];
+}
+
+export interface NewsPivotalPoint {
+	date: string;
+	title: string;
+	whyItMatters: string;
+	impact: "high" | "medium" | "low";
+}
+
+export interface NewsDriver {
+	name: string;
+	detail: string;
+	impact: "high" | "medium" | "low";
+}
+
+export interface StructuredNewsTypeContent {
+	schemaVersion: 2;
+	type: "news";
+	recommendationReason: string;
+	evidenceLinks: EvidenceLink[];
+	researchLogic: ResearchLogic;
+	pivotalPoints: NewsPivotalPoint[];
+	timeline: NewsTimelineItem[];
+	drivers: NewsDriver[];
+	outlook: {
+		shortTerm: string;
+		midTerm: string;
+		watchpoints: string[];
+	};
 }
 
 export interface BestPracticeMethod {
@@ -107,6 +160,39 @@ export interface BestPracticeTypeContent {
 	methods: BestPracticeMethod[];
 	keyInsights: string[];
 	actionItems: BestPracticeActionItem[];
+}
+
+export interface PracticePattern {
+	name: string;
+	summary: string;
+	whyRecommended: string;
+	fitFor: string[];
+	cautions: string[];
+}
+
+export interface PracticeAntiPattern {
+	name: string;
+	summary: string;
+	risk: string;
+	betterOption: string;
+}
+
+export interface EmergingPracticePattern {
+	name: string;
+	summary: string;
+	whyWatch: string;
+	uncertainty: string;
+}
+
+export interface StructuredBestPracticeTypeContent {
+	schemaVersion: 2;
+	type: "bestPractice";
+	recommendationReason: string;
+	evidenceLinks: EvidenceLink[];
+	researchLogic: ResearchLogic;
+	recommendedPatterns: PracticePattern[];
+	antiPatterns: PracticeAntiPattern[];
+	emergingPatterns: EmergingPracticePattern[];
 }
 
 export interface TechComparison {
@@ -162,6 +248,45 @@ export interface ResearchTypeContent {
 	}[];
 }
 
+export interface TechResearchApproach {
+	name: string;
+	summary: string;
+	focus: string;
+	evidenceType: "theory" | "experiment" | "product";
+}
+
+export interface TechResearchFinding {
+	finding: string;
+	method: string;
+	implication: string;
+}
+
+export interface TechResearchControversy {
+	topic: string;
+	sideA: string;
+	sideB: string;
+	whyUnresolved: string;
+}
+
+export interface TechResearchUnknown {
+	question: string;
+	whyUnknown: string;
+	nextStep: string;
+}
+
+export interface TechResearchTypeContent {
+	schemaVersion: 2;
+	type: "techResearch";
+	recommendationReason: string;
+	evidenceLinks: EvidenceLink[];
+	researchLogic: ResearchLogic;
+	keyPoints: string[];
+	approaches: TechResearchApproach[];
+	knownFindings: TechResearchFinding[];
+	controversies: TechResearchControversy[];
+	unknowns: TechResearchUnknown[];
+}
+
 export interface IndustryPlayer {
 	name: string;
 	role: string;
@@ -186,7 +311,10 @@ export interface IndustryTypeContent {
 
 export type TopicTypeContent =
 	| NewsTypeContent
+	| StructuredNewsTypeContent
 	| BestPracticeTypeContent
+	| StructuredBestPracticeTypeContent
+	| TechResearchTypeContent
 	| TechnologyTypeContent
 	| ResearchTypeContent
 	| IndustryTypeContent;
