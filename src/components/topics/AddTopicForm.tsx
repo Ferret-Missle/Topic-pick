@@ -93,13 +93,13 @@ export default function AddTopicForm({
 							<p className="text-xs font-semibold text-text mb-2">
 								最初に知りたい切り口を1つ選んでください
 							</p>
-							<div className="grid gap-2 sm:grid-cols-3">
+							<div className="grid grid-cols-1 gap-2">
 								{clarificationOptions.map((option) => (
 									<button
 										key={option.type}
 										type="button"
 										onClick={() => onClarifyTopicType(option.type)}
-										className="rounded-lg border border-border bg-bg-surface3 px-3 py-2 text-left hover:border-warm/40 hover:bg-bg-surface2"
+										className="min-w-0 rounded-lg border border-border bg-bg-surface3 px-3 py-2 text-left hover:border-warm/40 hover:bg-bg-surface2"
 									>
 										<p className="text-xs font-semibold text-text">
 											{option.label}
@@ -113,41 +113,47 @@ export default function AddTopicForm({
 						</div>
 					)}
 
-					<div className="grid gap-2 sm:grid-cols-3">
+					<div className="grid grid-cols-1 gap-2">
 						{topicTypeCandidates.map((candidate, index) => {
 							const cfg = TOPIC_TYPE_CONFIG[candidate.type];
 							return (
-						<Tooltip key={candidate.type} position="bottom" content={cfg.description}>
-							<button
-								type="button"
-								onClick={() => onTopicTypeChange(candidate.type)}
-								className={`w-full rounded-xl border p-3 text-left transition-all ${
-									topicType === candidate.type
-										? "border-accent bg-accent/10 text-accent shadow-[0_0_0_1px_rgba(59,130,246,0.15)]"
-										: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover hover:text-text"
-								}`}
-							>
-								<div className="flex items-start justify-between gap-2">
-									<div>
-										<div className="flex items-center gap-2">
-											<span className="text-base">{cfg.icon}</span>
-											<span className="font-semibold text-sm">{cfg.label}</span>
+								<Tooltip
+									key={candidate.type}
+									position="bottom"
+									content={cfg.description}
+								>
+									<button
+										type="button"
+										onClick={() => onTopicTypeChange(candidate.type)}
+										className={`min-w-0 w-full rounded-xl border p-3 text-left transition-all ${
+											topicType === candidate.type
+												? "border-accent bg-accent/10 text-accent shadow-[0_0_0_1px_rgba(59,130,246,0.15)]"
+												: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover hover:text-text"
+										}`}
+									>
+										<div className="flex items-start justify-between gap-2">
+											<div className="min-w-0">
+												<div className="flex items-center gap-2">
+													<span className="text-base">{cfg.icon}</span>
+													<span className="font-semibold text-sm">
+														{cfg.label}
+													</span>
+												</div>
+												<p className="mt-1 text-[11px] leading-relaxed text-current/80">
+													{cfg.description}
+												</p>
+											</div>
+											{index === 0 && (
+												<span className="shrink-0 rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
+													おすすめ
+												</span>
+											)}
 										</div>
-										<p className="mt-1 text-[11px] leading-relaxed text-current/80">
-											{cfg.description}
+										<p className="mt-2 text-[11px] leading-relaxed text-current/75">
+											{candidate.reason}
 										</p>
-									</div>
-									{index === 0 && (
-										<span className="rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
-											おすすめ
-										</span>
-									)}
-								</div>
-								<p className="mt-2 text-[11px] leading-relaxed text-current/75">
-									{candidate.reason}
-								</p>
-							</button>
-						</Tooltip>
+									</button>
+								</Tooltip>
 							);
 						})}
 					</div>

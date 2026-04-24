@@ -1,10 +1,26 @@
 import { Menu, X, Zap } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTopics } from "../../contexts/TopicsContext";
 import TopicDetailPane from "../topics/TopicDetailPane";
 import Sidebar from "./Sidebar";
 
 export default function AppLayout() {
+	const { selectedTopicId } = useTopics();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		if (window.matchMedia("(max-width: 767px)").matches) {
+			setSidebarOpen(true);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (!selectedTopicId || typeof window === "undefined") return;
+		if (window.matchMedia("(max-width: 767px)").matches) {
+			setSidebarOpen(false);
+		}
+	}, [selectedTopicId]);
 
 	return (
 		<div className="flex h-screen overflow-hidden bg-bg">
@@ -19,7 +35,7 @@ export default function AppLayout() {
 						onClick={() => setSidebarOpen(false)}
 					/>
 					<div className="absolute inset-y-0 left-0 w-72 z-50 animate-slide-in">
-						<Sidebar />
+						<Sidebar onTopicSelected={() => setSidebarOpen(false)} />
 					</div>
 				</div>
 			)}

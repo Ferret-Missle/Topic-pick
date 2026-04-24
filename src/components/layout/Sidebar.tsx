@@ -21,7 +21,11 @@ import TopicItem from "../topics/TopicItem";
 import SettingsPanel from "./SettingsPanel";
 import TokenUsagePanel from "./TokenUsagePanel";
 
-export default function Sidebar() {
+interface SidebarProps {
+	onTopicSelected?: () => void;
+}
+
+export default function Sidebar({ onTopicSelected }: SidebarProps) {
 	const { appUser, logout, firebaseUser } = useAuth();
 	const {
 		topics,
@@ -132,6 +136,7 @@ export default function Sidebar() {
 								isLowInterest={lowInterestTopics.some((t) => t.id === topic.id)}
 								onClick={() => {
 									selectTopic(topic.id);
+									onTopicSelected?.();
 									setDeleteConfirm(null);
 								}}
 							/>

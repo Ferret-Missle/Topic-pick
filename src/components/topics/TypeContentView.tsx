@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
+import type { ReactNode } from "react";
 import type {
 	BestPracticeTypeContent,
 	EvidenceLink,
@@ -71,7 +71,46 @@ function Panel({
 		yellow: "bg-yellow-500/5 border-yellow-500/20",
 		red: "bg-red-500/5 border-red-500/20",
 	};
-	return <div className={`rounded-lg border p-3 ${tones[tone]}`}>{children}</div>;
+	return (
+		<div className={`rounded-lg border p-3 ${tones[tone]}`}>{children}</div>
+	);
+}
+
+function NewsTimelineRail({ children }: { children: ReactNode }) {
+	return (
+		<div className="relative border-l-2 border-accent/20 pl-4 space-y-3">
+			{children}
+		</div>
+	);
+}
+
+function NewsTimelineItem({
+	date,
+	badge,
+	title,
+	detail,
+	children,
+}: {
+	date: string;
+	badge?: ReactNode;
+	title: string;
+	detail: ReactNode;
+	children?: ReactNode;
+}) {
+	return (
+		<div className="relative">
+			<div className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-bg-surface bg-accent" />
+			<div className="space-y-1.5">
+				<div className="flex items-center gap-2 flex-wrap">
+					<span className="text-[11px] font-mono text-text-dim">{date}</span>
+					{badge}
+				</div>
+				<h5 className="text-sm font-semibold text-text">{title}</h5>
+				<div className="text-xs text-text-muted leading-relaxed">{detail}</div>
+				{children}
+			</div>
+		</div>
+	);
 }
 
 function EvidenceSection({ evidenceLinks }: { evidenceLinks: EvidenceLink[] }) {
@@ -96,7 +135,11 @@ function EvidenceSection({ evidenceLinks }: { evidenceLinks: EvidenceLink[] }) {
 	);
 }
 
-function ResearchLogicSection({ researchLogic }: { researchLogic: ResearchLogic }) {
+function ResearchLogicSection({
+	researchLogic,
+}: {
+	researchLogic: ResearchLogic;
+}) {
 	return (
 		<Panel>
 			<SectionTitle>調査ロジック</SectionTitle>
@@ -165,7 +208,9 @@ function StructuredBestPracticeView({
 					{content.recommendedPatterns.map((pattern, index) => (
 						<Panel key={`${pattern.name}-${index}`} tone="green">
 							<div className="flex items-center gap-2 mb-2 flex-wrap">
-								<h5 className="text-sm font-semibold text-text">{pattern.name}</h5>
+								<h5 className="text-sm font-semibold text-text">
+									{pattern.name}
+								</h5>
 								<Badge color="green">推奨</Badge>
 							</div>
 							<p className="text-xs text-text-muted leading-relaxed mb-2">
@@ -205,12 +250,20 @@ function StructuredBestPracticeView({
 						{content.antiPatterns.map((pattern, index) => (
 							<Panel key={`${pattern.name}-${index}`} tone="red">
 								<div className="flex items-center gap-2 mb-1.5 flex-wrap">
-									<span className="text-xs font-semibold text-text">{pattern.name}</span>
+									<span className="text-xs font-semibold text-text">
+										{pattern.name}
+									</span>
 									<Badge color="red">非推奨</Badge>
 								</div>
-								<p className="text-[11px] text-text-muted leading-relaxed">{pattern.summary}</p>
-								<p className="text-[11px] text-red-300 mt-1.5">{pattern.risk}</p>
-								<p className="text-[11px] text-text-muted mt-1.5">代替: {pattern.betterOption}</p>
+								<p className="text-[11px] text-text-muted leading-relaxed">
+									{pattern.summary}
+								</p>
+								<p className="text-[11px] text-red-300 mt-1.5">
+									{pattern.risk}
+								</p>
+								<p className="text-[11px] text-text-muted mt-1.5">
+									代替: {pattern.betterOption}
+								</p>
 							</Panel>
 						))}
 					</div>
@@ -222,12 +275,20 @@ function StructuredBestPracticeView({
 						{content.emergingPatterns.map((pattern, index) => (
 							<Panel key={`${pattern.name}-${index}`} tone="yellow">
 								<div className="flex items-center gap-2 mb-1.5 flex-wrap">
-									<span className="text-xs font-semibold text-text">{pattern.name}</span>
+									<span className="text-xs font-semibold text-text">
+										{pattern.name}
+									</span>
 									<Badge color="yellow">注目</Badge>
 								</div>
-								<p className="text-[11px] text-text-muted leading-relaxed">{pattern.summary}</p>
-								<p className="text-[11px] text-text mt-1.5">{pattern.whyWatch}</p>
-								<p className="text-[11px] text-text-muted mt-1.5">{pattern.uncertainty}</p>
+								<p className="text-[11px] text-text-muted leading-relaxed">
+									{pattern.summary}
+								</p>
+								<p className="text-[11px] text-text mt-1.5">
+									{pattern.whyWatch}
+								</p>
+								<p className="text-[11px] text-text-muted mt-1.5">
+									{pattern.uncertainty}
+								</p>
 							</Panel>
 						))}
 					</div>
@@ -243,46 +304,77 @@ function StructuredBestPracticeView({
 	);
 }
 
-function StructuredNewsView({ content }: { content: StructuredNewsTypeContent }) {
+function StructuredNewsView({
+	content,
+}: {
+	content: StructuredNewsTypeContent;
+}) {
 	return (
 		<div className="space-y-4">
 			<div>
 				<SectionTitle>重要な転換点</SectionTitle>
-				<div className="space-y-2">
+				<NewsTimelineRail>
 					{content.pivotalPoints.map((point, index) => (
-						<Panel key={`${point.title}-${index}`} tone="accent">
-							<div className="flex items-center gap-2 mb-1.5 flex-wrap">
-								<span className="text-[11px] font-mono text-text-dim">{point.date}</span>
-								<Badge color={point.impact === "high" ? "red" : point.impact === "medium" ? "yellow" : "green"}>
+						<NewsTimelineItem
+							key={`${point.title}-${index}`}
+							date={point.date}
+							title={point.title}
+							detail={point.whyItMatters}
+							badge={
+								<Badge
+									color={
+										point.impact === "high"
+											? "red"
+											: point.impact === "medium"
+												? "yellow"
+												: "green"
+									}
+								>
 									{point.impact}
 								</Badge>
-							</div>
-							<h5 className="text-sm font-semibold text-text mb-1">{point.title}</h5>
-							<p className="text-xs text-text-muted leading-relaxed">{point.whyItMatters}</p>
-						</Panel>
+							}
+						/>
 					))}
-				</div>
+				</NewsTimelineRail>
 			</div>
 
 			<div>
 				<SectionTitle>時系列の流れ</SectionTitle>
-				<div className="relative border-l-2 border-accent/20 pl-4 space-y-3">
+				<NewsTimelineRail>
 					{content.timeline.map((item, index) => (
-						<div key={`${item.date}-${item.headline}-${index}`} className="relative">
-							<div className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-bg-surface bg-accent" />
-							<Panel>
-								<div className="flex items-center gap-2 mb-1.5 flex-wrap">
-									<span className="text-[11px] font-mono text-text-dim">{item.date}</span>
-									<Badge color={item.impact === "high" ? "red" : item.impact === "medium" ? "yellow" : "green"}>
-										{item.impact}
-									</Badge>
+						<NewsTimelineItem
+							key={`${item.date}-${item.headline}-${index}`}
+							date={item.date}
+							title={item.headline}
+							detail={item.detail}
+							badge={
+								<Badge
+									color={
+										item.impact === "high"
+											? "red"
+											: item.impact === "medium"
+												? "yellow"
+												: "green"
+									}
+								>
+									{item.impact}
+								</Badge>
+							}
+						>
+							{item.sources?.length > 0 && (
+								<div className="flex flex-wrap gap-2 pt-1">
+									{item.sources.map((source, sourceIndex) => (
+										<SourceLink
+											key={`${source.title}-${sourceIndex}`}
+											title={source.title}
+											url={source.url}
+										/>
+									))}
 								</div>
-								<h5 className="text-sm font-semibold text-text mb-1">{item.headline}</h5>
-								<p className="text-xs text-text-muted leading-relaxed">{item.detail}</p>
-							</Panel>
-						</div>
+							)}
+						</NewsTimelineItem>
 					))}
-				</div>
+				</NewsTimelineRail>
 			</div>
 
 			<div className="grid gap-3 sm:grid-cols-2">
@@ -292,12 +384,24 @@ function StructuredNewsView({ content }: { content: StructuredNewsTypeContent })
 						{content.drivers.map((driver, index) => (
 							<div key={`${driver.name}-${index}`}>
 								<div className="flex items-center gap-2 mb-1 flex-wrap">
-									<span className="text-xs font-semibold text-text">{driver.name}</span>
-									<Badge color={driver.impact === "high" ? "red" : driver.impact === "medium" ? "yellow" : "green"}>
+									<span className="text-xs font-semibold text-text">
+										{driver.name}
+									</span>
+									<Badge
+										color={
+											driver.impact === "high"
+												? "red"
+												: driver.impact === "medium"
+													? "yellow"
+													: "green"
+										}
+									>
 										{driver.impact}
 									</Badge>
 								</div>
-								<p className="text-[11px] text-text-muted leading-relaxed">{driver.detail}</p>
+								<p className="text-[11px] text-text-muted leading-relaxed">
+									{driver.detail}
+								</p>
 							</div>
 						))}
 					</div>
@@ -305,8 +409,12 @@ function StructuredNewsView({ content }: { content: StructuredNewsTypeContent })
 
 				<Panel tone="green">
 					<SectionTitle>今後の見通し</SectionTitle>
-					<p className="text-xs text-text-muted leading-relaxed mb-2">短期: {content.outlook.shortTerm}</p>
-					<p className="text-xs text-text-muted leading-relaxed mb-2">中期: {content.outlook.midTerm}</p>
+					<p className="text-xs text-text-muted leading-relaxed mb-2">
+						短期: {content.outlook.shortTerm}
+					</p>
+					<p className="text-xs text-text-muted leading-relaxed mb-2">
+						中期: {content.outlook.midTerm}
+					</p>
 					{content.outlook.watchpoints.length > 0 && (
 						<ul className="space-y-1 text-[11px] text-text-muted">
 							{content.outlook.watchpoints.map((watchpoint, index) => (
@@ -350,11 +458,17 @@ function TechResearchView({ content }: { content: TechResearchTypeContent }) {
 					{content.approaches.map((approach, index) => (
 						<Panel key={`${approach.name}-${index}`}>
 							<div className="flex items-center gap-2 mb-1.5 flex-wrap">
-								<h5 className="text-sm font-semibold text-text">{approach.name}</h5>
+								<h5 className="text-sm font-semibold text-text">
+									{approach.name}
+								</h5>
 								<Badge color="blue">{approach.evidenceType}</Badge>
 							</div>
-							<p className="text-xs text-text-muted leading-relaxed mb-1.5">{approach.summary}</p>
-							<p className="text-[11px] text-text-dim">焦点: {approach.focus}</p>
+							<p className="text-xs text-text-muted leading-relaxed mb-1.5">
+								{approach.summary}
+							</p>
+							<p className="text-[11px] text-text-dim">
+								焦点: {approach.focus}
+							</p>
 						</Panel>
 					))}
 				</div>
@@ -366,9 +480,15 @@ function TechResearchView({ content }: { content: TechResearchTypeContent }) {
 					<div className="space-y-2">
 						{content.knownFindings.map((finding, index) => (
 							<div key={`${finding.finding}-${index}`}>
-								<p className="text-xs font-semibold text-text">{finding.finding}</p>
-								<p className="text-[11px] text-text-muted mt-1">方法: {finding.method}</p>
-								<p className="text-[11px] text-text-muted mt-1">{finding.implication}</p>
+								<p className="text-xs font-semibold text-text">
+									{finding.finding}
+								</p>
+								<p className="text-[11px] text-text-muted mt-1">
+									方法: {finding.method}
+								</p>
+								<p className="text-[11px] text-text-muted mt-1">
+									{finding.implication}
+								</p>
 							</div>
 						))}
 					</div>
@@ -379,10 +499,18 @@ function TechResearchView({ content }: { content: TechResearchTypeContent }) {
 					<div className="space-y-2">
 						{content.controversies.map((controversy, index) => (
 							<div key={`${controversy.topic}-${index}`}>
-								<p className="text-xs font-semibold text-text">{controversy.topic}</p>
-								<p className="text-[11px] text-text-muted mt-1">A: {controversy.sideA}</p>
-								<p className="text-[11px] text-text-muted mt-1">B: {controversy.sideB}</p>
-								<p className="text-[11px] text-text-muted mt-1">{controversy.whyUnresolved}</p>
+								<p className="text-xs font-semibold text-text">
+									{controversy.topic}
+								</p>
+								<p className="text-[11px] text-text-muted mt-1">
+									A: {controversy.sideA}
+								</p>
+								<p className="text-[11px] text-text-muted mt-1">
+									B: {controversy.sideB}
+								</p>
+								<p className="text-[11px] text-text-muted mt-1">
+									{controversy.whyUnresolved}
+								</p>
 							</div>
 						))}
 					</div>
@@ -394,9 +522,15 @@ function TechResearchView({ content }: { content: TechResearchTypeContent }) {
 				<div className="space-y-2">
 					{content.unknowns.map((unknown, index) => (
 						<div key={`${unknown.question}-${index}`}>
-							<p className="text-xs font-semibold text-text">{unknown.question}</p>
-							<p className="text-[11px] text-text-muted mt-1">{unknown.whyUnknown}</p>
-							<p className="text-[11px] text-text-muted mt-1">次の論点: {unknown.nextStep}</p>
+							<p className="text-xs font-semibold text-text">
+								{unknown.question}
+							</p>
+							<p className="text-[11px] text-text-muted mt-1">
+								{unknown.whyUnknown}
+							</p>
+							<p className="text-[11px] text-text-muted mt-1">
+								次の論点: {unknown.nextStep}
+							</p>
 						</div>
 					))}
 				</div>
@@ -425,18 +559,41 @@ function LegacyNewsView({ content }: { content: NewsTypeContent }) {
 			<LegacyNotice>
 				旧ニュース形式のデータです。次回更新で新しいニュースモードに移行されます。
 			</LegacyNotice>
-			{content.timeline.map((item, index) => (
-				<Panel key={`${item.date}-${index}`}>
-					<div className="flex items-center gap-2 mb-1.5 flex-wrap">
-						<span className="text-[11px] font-mono text-text-dim">{item.date}</span>
-						<Badge color={item.impact === "high" ? "red" : item.impact === "medium" ? "yellow" : "green"}>
-							{item.impact}
-						</Badge>
-					</div>
-					<h5 className="text-sm font-semibold text-text mb-1">{item.headline}</h5>
-					<p className="text-xs text-text-muted leading-relaxed">{item.detail}</p>
-				</Panel>
-			))}
+			<NewsTimelineRail>
+				{content.timeline.map((item, index) => (
+					<NewsTimelineItem
+						key={`${item.date}-${index}`}
+						date={item.date}
+						title={item.headline}
+						detail={item.detail}
+						badge={
+							<Badge
+								color={
+									item.impact === "high"
+										? "red"
+										: item.impact === "medium"
+											? "yellow"
+											: "green"
+								}
+							>
+								{item.impact}
+							</Badge>
+						}
+					>
+						{item.sources?.length > 0 && (
+							<div className="flex flex-wrap gap-2 pt-1">
+								{item.sources.map((source, sourceIndex) => (
+									<SourceLink
+										key={`${source.title}-${sourceIndex}`}
+										title={source.title}
+										url={source.url}
+									/>
+								))}
+							</div>
+						)}
+					</NewsTimelineItem>
+				))}
+			</NewsTimelineRail>
 			{content.outlook && (
 				<Panel tone="accent">
 					<p className="text-xs text-text-muted">{content.outlook}</p>
@@ -446,7 +603,11 @@ function LegacyNewsView({ content }: { content: NewsTypeContent }) {
 	);
 }
 
-function LegacyBestPracticeView({ content }: { content: BestPracticeTypeContent }) {
+function LegacyBestPracticeView({
+	content,
+}: {
+	content: BestPracticeTypeContent;
+}) {
 	return (
 		<div className="space-y-4">
 			<LegacyNotice>
@@ -458,7 +619,9 @@ function LegacyBestPracticeView({ content }: { content: BestPracticeTypeContent 
 						<h5 className="text-sm font-semibold text-text">{method.name}</h5>
 						<Badge color="gray">{method.category}</Badge>
 					</div>
-					<p className="text-xs text-text-muted leading-relaxed">{method.description}</p>
+					<p className="text-xs text-text-muted leading-relaxed">
+						{method.description}
+					</p>
 				</Panel>
 			))}
 		</div>
@@ -474,11 +637,19 @@ function LegacyTechnologyView({ content }: { content: TechnologyTypeContent }) {
 			{content.comparisons.map((comparison, index) => (
 				<Panel key={`${comparison.name}-${index}`}>
 					<div className="flex items-center gap-2 mb-1.5 flex-wrap">
-						<h5 className="text-sm font-semibold text-text">{comparison.name}</h5>
-						{comparison.version && <Badge color="gray">{comparison.version}</Badge>}
+						<h5 className="text-sm font-semibold text-text">
+							{comparison.name}
+						</h5>
+						{comparison.version && (
+							<Badge color="gray">{comparison.version}</Badge>
+						)}
 					</div>
-					<p className="text-[11px] text-text-muted">最適用途: {comparison.bestFor}</p>
-					<p className="text-[11px] text-text-muted mt-1">性能: {comparison.performance}</p>
+					<p className="text-[11px] text-text-muted">
+						最適用途: {comparison.bestFor}
+					</p>
+					<p className="text-[11px] text-text-muted mt-1">
+						性能: {comparison.performance}
+					</p>
 				</Panel>
 			))}
 		</div>
@@ -497,7 +668,9 @@ function LegacyResearchView({ content }: { content: ResearchTypeContent }) {
 					<p className="text-[11px] text-text-muted mt-1">
 						{paper.authors} / {paper.venue}
 					</p>
-					<p className="text-xs text-text-muted leading-relaxed mt-2">{paper.abstract}</p>
+					<p className="text-xs text-text-muted leading-relaxed mt-2">
+						{paper.abstract}
+					</p>
 				</Panel>
 			))}
 		</div>
@@ -511,9 +684,15 @@ function LegacyIndustryView({ content }: { content: IndustryTypeContent }) {
 				旧業界動向形式のデータです。次回更新でニュースモードに移行されます。
 			</LegacyNotice>
 			<Panel>
-				<p className="text-[11px] text-text-muted">市場規模: {content.marketData.marketSize}</p>
-				<p className="text-[11px] text-text-muted mt-1">成長率: {content.marketData.growthRate}</p>
-				<p className="text-[11px] text-text-muted mt-1">将来予測: {content.marketData.forecast}</p>
+				<p className="text-[11px] text-text-muted">
+					市場規模: {content.marketData.marketSize}
+				</p>
+				<p className="text-[11px] text-text-muted mt-1">
+					成長率: {content.marketData.growthRate}
+				</p>
+				<p className="text-[11px] text-text-muted mt-1">
+					将来予測: {content.marketData.forecast}
+				</p>
 			</Panel>
 		</div>
 	);

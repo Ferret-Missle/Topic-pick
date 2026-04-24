@@ -71,24 +71,24 @@ export default function TopicSettingsEditor({
 				<label className="block text-[11px] font-semibold text-text-muted mb-1 uppercase tracking-wider">
 					調査モード
 				</label>
-				<div className="flex flex-wrap items-center gap-1.5">
+				<div className="grid grid-cols-1 gap-1.5">
 					{SELECTABLE_TOPIC_TYPES.map((key) => {
 						const cfg = TOPIC_TYPE_CONFIG[key];
 						return (
-						<Tooltip key={key} position="bottom" content={cfg.description}>
-							<button
-								type="button"
-								onClick={() => onTopicTypeChange(key)}
-								className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[11px] transition-all ${
-									topicType === key
-										? "border-accent bg-accent/10 text-accent"
-										: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover"
-								}`}
-							>
-								<span>{cfg.icon}</span>
-								<span className="font-medium">{cfg.label}</span>
-							</button>
-						</Tooltip>
+							<Tooltip key={key} position="bottom" content={cfg.description}>
+								<button
+									type="button"
+									onClick={() => onTopicTypeChange(key)}
+									className={`flex w-full min-w-0 items-center justify-start gap-1 px-2 py-1.5 rounded-lg border text-[11px] transition-all ${
+										topicType === key
+											? "border-accent bg-accent/10 text-accent"
+											: "border-border bg-bg-surface3 text-text-muted hover:border-border-hover"
+									}`}
+								>
+									<span>{cfg.icon}</span>
+									<span className="font-medium">{cfg.label}</span>
+								</button>
+							</Tooltip>
 						);
 					})}
 				</div>
